@@ -1,0 +1,24 @@
+node_modules/
+dist/
+.env
+.env.local
+local.settings.json
+*.js.map
+*.d.ts
+!api/host.json
+
+# Frontend build
+frontend/dist/
+
+# Azure Functions
+api/bin/
+api/obj/
+.azure/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
