@@ -1,14 +1,12 @@
 /**
  * Entra ID authentication middleware for Azure Functions
  *
- * Entra ID issues HS256-signed access tokens for same-tenant SPA→API flows.
- * These are verified using the API app's client secret as the symmetric key.
- * This is cryptographically secure — the secret never leaves the server.
+ * Verifies access tokens issued by Entra ID for the API app registration.
+ * Uses the jose library for JWT verification (handles HS256/RS256 correctly).
  */
 
 import { HttpRequest, InvocationContext } from '@azure/functions';
-import jwt from 'jsonwebtoken';
-import { createSecretKey } from 'crypto';
+import { jwtVerify, createLocalJWKSet, createRemoteJWKSet, importJWK } from 'jose';
 import { getPool } from '../utils/database';
 
 interface AuthResult {
@@ -19,7 +17,6 @@ interface AuthResult {
   error?: string;
 }
 
-// API app registration (separate from the SPA app)
 const API_APP_ID = process.env.ENTRA_API_APP_ID || 'cde2b783-c437-4758-9308-d9474e27bc39';
 
 /**
@@ -29,7 +26,7 @@ export async function authenticateSuperAdmin(
   req: HttpRequest,
   context: InvocationContext
 ): Promise<AuthResult> {
-  // Use custom header — SWA proxy replaces the Authorization header with its own internal token
+  // Use custom header — SWA proxy replaces the Authorization header
   const token = req.headers.get('x-admin-token');
 
   if (!token) {
@@ -37,21 +34,21 @@ export async function authenticateSuperAdmin(
   }
 
   const apiSecret = process.env.ENTRA_API_CLIENT_SECRET;
+  if (!apiSecret) {
+    return { authenticated: false, error: 'API client secret not configured' };
+  }
 
   try {
-    if (!apiSecret) {
-      return { authenticated: false, error: 'API client secret not configured' };
-    }
+    // Import the client secret as an HS256 key
+    const secret = new TextEncoder().encode(apiSecret);
 
-    // Use createSecretKey to explicitly create a symmetric KeyObject
-    const secretKey = createSecretKey(Buffer.from(apiSecret));
-    const decoded = jwt.verify(token, secretKey, {
+    const { payload } = await jwtVerify(token, secret, {
       algorithms: ['HS256'],
       audience: API_APP_ID,
       issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
-    }) as jwt.JwtPayload;
+    });
 
-    const email = (decoded.preferred_username || decoded.email || decoded.upn || '').toLowerCase();
+    const email = ((payload.preferred_username || payload.email || payload.upn) as string || '').toLowerCase();
 
     if (!email) {
       return { authenticated: false, error: 'No email in token claims' };
@@ -94,7 +91,7 @@ export async function authenticateSuperAdmin(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     context.error('Auth error:', message);
-    return { authenticated: false, error: `Auth failed: ${message} | secretLen=${apiSecret.length} | node=${process.version}` };
+    return { authenticated: false, error: `Auth failed: ${message}` };
   }
 }
 
