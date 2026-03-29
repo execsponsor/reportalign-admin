@@ -20,7 +20,7 @@ apiClient.interceptors.request.use(async (config) => {
         ...loginRequest,
         account: accounts[0],
       });
-      config.headers.Authorization = `Bearer ${response.accessToken}`;
+      config.headers.Authorization = `Bearer ${response.idToken}`;
     } catch (err) {
       if (err instanceof InteractionRequiredAuthError) {
         await msalInstance.acquireTokenRedirect(loginRequest);
