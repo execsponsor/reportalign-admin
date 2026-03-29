@@ -1,6 +1,6 @@
 /**
  * Entra ID authentication middleware for Azure Functions
- * Verifies JWT tokens and checks super_admin role
+ * Verifies RS256 JWT access tokens issued for the API app registration
  */
 
 import { HttpRequest, InvocationContext } from '@azure/functions';
@@ -16,6 +16,9 @@ interface AuthResult {
   error?: string;
 }
 
+// API app registration ID (separate from the SPA app)
+const API_APP_ID = process.env.ENTRA_API_APP_ID || 'cde2b783-c437-4758-9308-d9474e27bc39';
+
 // JWKS client for Entra ID token verification
 const client = jwksClient({
   jwksUri: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/discovery/v2.0/keys`,
@@ -25,7 +28,6 @@ const client = jwksClient({
 
 function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback): void {
   if (!header.kid) {
-    // ID tokens may lack kid — get all keys and use the first signing key
     client.getSigningKeys()
       .then((keys) => {
         const signingKey = keys?.[0]?.getPublicKey();
@@ -58,18 +60,15 @@ export async function authenticateSuperAdmin(
 
   const token = authHeader.substring(7);
 
-  // Decode header without verification for diagnostics
-  const tokenHeader = jwt.decode(token, { complete: true })?.header;
-
   try {
-    // Verify JWT with Entra ID JWKS
+    // Verify JWT signature, audience, issuer, and expiry
     const decoded = await new Promise<jwt.JwtPayload>((resolve, reject) => {
       jwt.verify(
         token,
         getKey,
         {
           algorithms: ['RS256'],
-          audience: process.env.ENTRA_CLIENT_ID,
+          audience: `api://${API_APP_ID}`,
           issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
         },
         (err, decoded) => {
@@ -122,7 +121,7 @@ export async function authenticateSuperAdmin(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     context.error('Auth error:', message);
-    return { authenticated: false, error: `Auth failed: ${message}`, tokenHeader: tokenHeader as unknown as string };
+    return { authenticated: false, error: `Auth failed: ${message}` };
   }
 }
 

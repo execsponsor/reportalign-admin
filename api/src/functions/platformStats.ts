@@ -10,7 +10,7 @@ import { getPool } from '../utils/database';
 async function platformStats(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) {
-    return { status: 401, jsonBody: { error: auth.error, debug: (auth as Record<string, unknown>).tokenHeader } };
+    return { status: 401, jsonBody: { error: auth.error } };
   }
 
   const pool = getPool();

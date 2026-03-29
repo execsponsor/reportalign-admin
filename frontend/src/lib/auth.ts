@@ -29,7 +29,7 @@ export const msalConfig: Configuration = {
 };
 
 export const loginRequest = {
-  scopes: ['openid', 'profile', 'email'],
+  scopes: ['api://cde2b783-c437-4758-9308-d9474e27bc39/access_as_admin'],
   domainHint: 'organizations',
 };
 
