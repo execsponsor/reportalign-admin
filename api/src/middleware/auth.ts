@@ -42,8 +42,8 @@ export async function authenticateSuperAdmin(
       return { authenticated: false, error: 'API client secret not configured' };
     }
 
-    // Verify HS256 token using API app's client secret
-    const decoded = jwt.verify(token, apiSecret, {
+    // Pass secret as Buffer to force jsonwebtoken to treat it as symmetric key
+    const decoded = jwt.verify(token, Buffer.from(apiSecret), {
       algorithms: ['HS256'],
       audience: API_APP_ID,
       issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
