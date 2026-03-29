@@ -8,6 +8,7 @@
 
 import { HttpRequest, InvocationContext } from '@azure/functions';
 import jwt from 'jsonwebtoken';
+import { createSecretKey } from 'crypto';
 import { getPool } from '../utils/database';
 
 interface AuthResult {
@@ -42,8 +43,9 @@ export async function authenticateSuperAdmin(
       return { authenticated: false, error: 'API client secret not configured' };
     }
 
-    // Pass secret as Buffer to force jsonwebtoken to treat it as symmetric key
-    const decoded = jwt.verify(token, Buffer.from(apiSecret), {
+    // Use createSecretKey to explicitly create a symmetric KeyObject
+    const secretKey = createSecretKey(Buffer.from(apiSecret));
+    const decoded = jwt.verify(token, secretKey, {
       algorithms: ['HS256'],
       audience: API_APP_ID,
       issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
