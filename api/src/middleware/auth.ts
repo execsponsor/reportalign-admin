@@ -28,13 +28,12 @@ export async function authenticateSuperAdmin(
   req: HttpRequest,
   context: InvocationContext
 ): Promise<AuthResult> {
-  const authHeader = req.headers.get('authorization');
+  // Use custom header — SWA proxy replaces the Authorization header with its own internal token
+  const token = req.headers.get('x-admin-token');
 
-  if (!authHeader?.startsWith('Bearer ')) {
-    return { authenticated: false, error: 'Missing or invalid Authorization header' };
+  if (!token) {
+    return { authenticated: false, error: 'Missing X-Admin-Token header' };
   }
-
-  const token = authHeader.substring(7);
 
   try {
     const apiSecret = process.env.ENTRA_API_CLIENT_SECRET;
