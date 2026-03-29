@@ -49,9 +49,21 @@ function ErrorComponent({ error }: { error: unknown }) {
   );
 }
 
+function renderError(message: string) {
+  const root = document.getElementById('root')!;
+  root.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#94a3b8;font-family:Inter,sans-serif">
+      <div style="text-align:center;max-width:400px">
+        <p style="color:#f87171;font-size:18px;font-weight:600;margin-bottom:8px">Authentication Error</p>
+        <p style="font-size:14px">${message}</p>
+        <button onclick="location.reload()" style="margin-top:16px;padding:8px 16px;background:#6366f1;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px">Retry</button>
+      </div>
+    </div>
+  `;
+}
+
 // Initialize MSAL before rendering
 msalInstance.initialize().then(() => {
-  // Handle redirect response
   msalInstance.handleRedirectPromise().then(() => {
     const accounts = msalInstance.getAllAccounts();
     if (accounts.length > 0) {
@@ -76,5 +88,11 @@ msalInstance.initialize().then(() => {
         </MsalProvider>
       </React.StrictMode>
     );
+  }).catch((err) => {
+    console.error('MSAL redirect error:', err);
+    renderError(err?.message || 'Failed to handle authentication redirect.');
   });
+}).catch((err) => {
+  console.error('MSAL init error:', err);
+  renderError(err?.message || 'Failed to initialize authentication.');
 });
