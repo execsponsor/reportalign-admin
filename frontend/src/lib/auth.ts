@@ -29,7 +29,8 @@ export const msalConfig: Configuration = {
 };
 
 export const loginRequest = {
-  scopes: [`${clientId}/.default`],
+  scopes: ['openid', 'profile', 'email'],
+  domainHint: 'organizations',
 };
 
 export const msalInstance = new PublicClientApplication(msalConfig);
