@@ -42,8 +42,10 @@ export async function authenticateSuperAdmin(
       return { authenticated: false, error: 'API client secret not configured' };
     }
 
-    // Verify JWT signature using the API app's client secret (HS256)
-    const decoded = jwt.verify(token, apiSecret, {
+    // Entra signs HS256 tokens with the base64-decoded client secret
+    const signingKey = Buffer.from(apiSecret, 'base64');
+
+    const decoded = jwt.verify(token, signingKey, {
       algorithms: ['HS256'],
       audience: `api://${API_APP_ID}`,
       issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
