@@ -107,8 +107,9 @@ export async function authenticateSuperAdmin(
       email,
     };
   } catch (err) {
-    context.error('Auth error:', err);
-    return { authenticated: false, error: 'Token verification failed' };
+    const message = err instanceof Error ? err.message : String(err);
+    context.error('Auth error:', message);
+    return { authenticated: false, error: `Auth failed: ${message}` };
   }
 }
 
