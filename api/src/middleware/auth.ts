@@ -58,6 +58,9 @@ export async function authenticateSuperAdmin(
 
   const token = authHeader.substring(7);
 
+  // Decode header without verification for diagnostics
+  const tokenHeader = jwt.decode(token, { complete: true })?.header;
+
   try {
     // Verify JWT with Entra ID JWKS
     const decoded = await new Promise<jwt.JwtPayload>((resolve, reject) => {
@@ -119,7 +122,7 @@ export async function authenticateSuperAdmin(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     context.error('Auth error:', message);
-    return { authenticated: false, error: `Auth failed: ${message}` };
+    return { authenticated: false, error: `Auth failed: ${message}`, tokenHeader: tokenHeader as unknown as string };
   }
 }
 
