@@ -10,9 +10,7 @@ import { getPool } from '../utils/database';
 async function platformStats(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) {
-    const token = req.headers.get('authorization')?.substring(7) || '';
-    const hdr = token ? JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString()) : null;
-    return { status: 401, jsonBody: { error: auth.error, tokenHeader: hdr } };
+    return { status: 401, jsonBody: { error: auth.error } };
   }
 
   const pool = getPool();

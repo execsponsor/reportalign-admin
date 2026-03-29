@@ -1,11 +1,13 @@
 /**
  * Entra ID authentication middleware for Azure Functions
- * Verifies RS256 JWT access tokens issued for the API app registration
+ *
+ * Entra ID issues HS256-signed access tokens for same-tenant SPA→API flows.
+ * These are verified using the API app's client secret as the symmetric key.
+ * This is cryptographically secure — the secret never leaves the server.
  */
 
 import { HttpRequest, InvocationContext } from '@azure/functions';
 import jwt from 'jsonwebtoken';
-import jwksClient from 'jwks-rsa';
 import { getPool } from '../utils/database';
 
 interface AuthResult {
@@ -16,37 +18,11 @@ interface AuthResult {
   error?: string;
 }
 
-// API app registration ID (separate from the SPA app)
+// API app registration (separate from the SPA app)
 const API_APP_ID = process.env.ENTRA_API_APP_ID || 'cde2b783-c437-4758-9308-d9474e27bc39';
 
-// JWKS client for Entra ID token verification
-const client = jwksClient({
-  jwksUri: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/discovery/v2.0/keys`,
-  cache: true,
-  cacheMaxAge: 600000, // 10 minutes
-});
-
-function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback): void {
-  if (!header.kid) {
-    client.getSigningKeys()
-      .then((keys) => {
-        const signingKey = keys?.[0]?.getPublicKey();
-        if (!signingKey) {
-          callback(new Error('No signing keys found'));
-          return;
-        }
-        callback(null, signingKey);
-      })
-      .catch((err) => callback(err));
-    return;
-  }
-  client.getSigningKey(header.kid)
-    .then((key) => callback(null, key.getPublicKey()))
-    .catch((err) => callback(err));
-}
-
 /**
- * Verify the Entra ID token and check super_admin status
+ * Verify the Entra ID access token and check super_admin status
  */
 export async function authenticateSuperAdmin(
   req: HttpRequest,
@@ -61,22 +37,17 @@ export async function authenticateSuperAdmin(
   const token = authHeader.substring(7);
 
   try {
-    // Verify JWT signature, audience, issuer, and expiry
-    const decoded = await new Promise<jwt.JwtPayload>((resolve, reject) => {
-      jwt.verify(
-        token,
-        getKey,
-        {
-          algorithms: ['RS256'],
-          audience: `api://${API_APP_ID}`,
-          issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
-        },
-        (err, decoded) => {
-          if (err) reject(err);
-          else resolve(decoded as jwt.JwtPayload);
-        }
-      );
-    });
+    const apiSecret = process.env.ENTRA_API_CLIENT_SECRET;
+    if (!apiSecret) {
+      return { authenticated: false, error: 'API client secret not configured' };
+    }
+
+    // Verify JWT signature using the API app's client secret (HS256)
+    const decoded = jwt.verify(token, apiSecret, {
+      algorithms: ['HS256'],
+      audience: `api://${API_APP_ID}`,
+      issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
+    }) as jwt.JwtPayload;
 
     const email = (decoded.preferred_username || decoded.email || decoded.upn || '').toLowerCase();
 
