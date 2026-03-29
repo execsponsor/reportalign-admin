@@ -94,7 +94,13 @@ export async function authenticateSuperAdmin(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     context.error('Auth error:', message);
-    return { authenticated: false, error: `Auth failed: ${message}` };
+    // Include decoded payload for diagnostics (no signature verification)
+    const debugPayload = jwt.decode(token) as Record<string, unknown> | null;
+    return {
+      authenticated: false,
+      error: `Auth failed: ${message}`,
+      debug: debugPayload ? { aud: debugPayload.aud, iss: debugPayload.iss, preferred_username: debugPayload.preferred_username, ver: debugPayload.ver, azp: debugPayload.azp } : null,
+    } as AuthResult;
   }
 }
 
