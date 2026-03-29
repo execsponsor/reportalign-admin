@@ -6,7 +6,7 @@
  */
 
 import { HttpRequest, InvocationContext } from '@azure/functions';
-import { jwtVerify, createLocalJWKSet, createRemoteJWKSet, importJWK } from 'jose';
+import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { getPool } from '../utils/database';
 
 interface AuthResult {
@@ -18,6 +18,11 @@ interface AuthResult {
 }
 
 const API_APP_ID = process.env.ENTRA_API_APP_ID || 'cde2b783-c437-4758-9308-d9474e27bc39';
+
+// JWKS for RS256 token verification
+const JWKS = createRemoteJWKSet(
+  new URL(`https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/discovery/v2.0/keys`)
+);
 
 /**
  * Verify the Entra ID access token and check super_admin status
@@ -33,16 +38,9 @@ export async function authenticateSuperAdmin(
     return { authenticated: false, error: 'Missing X-Admin-Token header' };
   }
 
-  const apiSecret = process.env.ENTRA_API_CLIENT_SECRET;
-  if (!apiSecret) {
-    return { authenticated: false, error: 'API client secret not configured' };
-  }
-
   try {
-    // Import the client secret as an HS256 key
-    const secret = new TextEncoder().encode(apiSecret);
-
-    const { payload } = await jwtVerify(token, secret, {
+    // Verify RS256 token using Entra ID JWKS
+    const { payload } = await jwtVerify(token, JWKS, {
       audience: API_APP_ID,
       issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
     });
