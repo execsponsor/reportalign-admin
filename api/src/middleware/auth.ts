@@ -24,6 +24,22 @@ const client = jwksClient({
 });
 
 function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback): void {
+  if (!header.kid) {
+    // ID tokens may lack kid — get all keys and use the first signing key
+    client.getSigningKeys((err, keys) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+      const signingKey = keys?.[0]?.getPublicKey();
+      if (!signingKey) {
+        callback(new Error('No signing keys found'));
+        return;
+      }
+      callback(null, signingKey);
+    });
+    return;
+  }
   client.getSigningKey(header.kid, (err, key) => {
     if (err) {
       callback(err);
