@@ -66,7 +66,7 @@ export async function authenticateSuperAdmin(
         getKey,
         {
           algorithms: ['RS256'],
-          audience: process.env.ENTRA_CLIENT_ID || process.env.ENTRA_AUDIENCE,
+          audience: `api://${process.env.ENTRA_CLIENT_ID}`,
           issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
         },
         (err, decoded) => {
