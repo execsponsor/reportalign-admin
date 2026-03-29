@@ -4,7 +4,6 @@ dist/
 .env.local
 local.settings.json
 *.js.map
-*.d.ts
 !api/host.json
 
 # Frontend build

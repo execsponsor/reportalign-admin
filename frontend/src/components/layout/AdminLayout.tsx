@@ -1,4 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
+import { useMsal, useAccount } from '@azure/msal-react';
 import {
   LayoutDashboard,
   Building2,
@@ -16,6 +17,22 @@ const navItems = [
 ];
 
 export function AdminLayout() {
+  const { instance, accounts } = useMsal();
+  const account = useAccount(accounts[0] ?? null);
+
+  const displayName = account?.name || account?.username || 'Super Admin';
+  const email = account?.username || '';
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
+  const handleLogout = () => {
+    instance.logoutRedirect({ postLogoutRedirectUri: window.location.origin });
+  };
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -56,16 +73,23 @@ export function AdminLayout() {
           ))}
         </nav>
 
-        {/* Footer */}
+        {/* User Footer */}
         <div className="p-4 border-t border-admin-border">
-          <div className="flex items-center gap-3 px-4 py-2 text-sm text-admin-muted">
+          <div className="flex items-center gap-3 px-4 py-2">
             <div className="w-8 h-8 rounded-full bg-admin-card flex items-center justify-center text-xs font-bold text-admin-accent">
-              SA
+              {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-admin-text text-sm font-medium truncate">Super Admin</p>
-              <p className="text-xs text-admin-muted truncate">Authenticated via Entra ID</p>
+              <p className="text-admin-text text-sm font-medium truncate">{displayName}</p>
+              <p className="text-xs text-admin-muted truncate">{email}</p>
             </div>
+            <button
+              onClick={handleLogout}
+              title="Sign out"
+              className="p-1.5 rounded-lg text-admin-muted hover:text-red-400 hover:bg-admin-card transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </aside>
