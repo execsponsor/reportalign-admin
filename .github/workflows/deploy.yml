@@ -25,6 +25,6 @@ jobs:
           output_location: "dist"
         env:
           VITE_ENTRA_CLIENT_ID: c303da83-4258-45fa-a7fc-8edd00e87c1f
-          VITE_ENTRA_TENANT_ID: 4887df12-664a-442e-8f2f-ef2cc99a69d8
-          VITE_ENTRA_AUTHORITY: https://login.microsoftonline.com/4887df12-664a-442e-8f2f-ef2cc99a69d8
+          VITE_ENTRA_TENANT_ID: 968f235a-c65e-4e4c-b308-9dd27c1b5a30
+          VITE_ENTRA_AUTHORITY: https://login.microsoftonline.com/968f235a-c65e-4e4c-b308-9dd27c1b5a30
           NODE_VERSION: '20'
