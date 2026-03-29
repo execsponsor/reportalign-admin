@@ -43,7 +43,6 @@ export async function authenticateSuperAdmin(
     const secret = new TextEncoder().encode(apiSecret);
 
     const { payload } = await jwtVerify(token, secret, {
-      algorithms: ['HS256'],
       audience: API_APP_ID,
       issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
     });
