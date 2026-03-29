@@ -105,7 +105,6 @@ export async function authenticateSuperAdmin(
         secretLength: apiSecret?.length,
         secretPrefix: apiSecret?.substring(0, 4),
         nodeVersion: process.version,
-        jwtVersion: require('jsonwebtoken/package.json').version,
       },
     } as AuthResult;
   }
