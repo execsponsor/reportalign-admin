@@ -44,7 +44,10 @@ export function OrganizationsPage() {
             {pagination ? `${pagination.total} total organizations` : 'Manage all ExecSponsor organizations'}
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 bg-admin-accent hover:bg-admin-accent-hover text-white rounded-lg font-medium text-sm transition-colors">
+        <button
+          onClick={() => alert('Create Organization form coming soon')}
+          className="flex items-center gap-2 px-4 py-2.5 bg-admin-accent hover:bg-admin-accent-hover text-white rounded-lg font-medium text-sm transition-colors"
+        >
           <Plus className="h-4 w-4" />
           Create Organization
         </button>
