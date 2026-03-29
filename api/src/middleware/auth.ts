@@ -41,14 +41,21 @@ export async function authenticateSuperAdmin(
       return { authenticated: false, error: 'API client secret not configured' };
     }
 
-    // Entra signs HS256 tokens with the base64-decoded client secret
-    const signingKey = Buffer.from(apiSecret, 'base64');
-
-    const decoded = jwt.verify(token, signingKey, {
+    // Try both raw secret and base64-decoded (Entra behaviour varies)
+    let decoded: jwt.JwtPayload | null = null;
+    const verifyOpts: jwt.VerifyOptions = {
       algorithms: ['HS256'],
-      audience: `api://${API_APP_ID}`,
+      audience: API_APP_ID,
       issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
-    }) as jwt.JwtPayload;
+    };
+
+    try {
+      decoded = jwt.verify(token, apiSecret, verifyOpts) as jwt.JwtPayload;
+    } catch {
+      // Try base64-decoded secret
+      const signingKey = Buffer.from(apiSecret, 'base64');
+      decoded = jwt.verify(token, signingKey, verifyOpts) as jwt.JwtPayload;
+    }
 
     const email = (decoded.preferred_username || decoded.email || decoded.upn || '').toLowerCase();
 
