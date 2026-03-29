@@ -91,22 +91,7 @@ export async function authenticateSuperAdmin(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     context.error('Auth error:', message);
-    const debugPayload = jwt.decode(token) as Record<string, unknown> | null;
-    const debugHeader = jwt.decode(token, { complete: true })?.header;
-    return {
-      authenticated: false,
-      error: `Auth failed: ${message}`,
-      debug: {
-        tokenAlg: debugHeader?.alg,
-        tokenTyp: debugHeader?.typ,
-        aud: debugPayload?.aud,
-        iss: debugPayload?.iss,
-        preferred_username: debugPayload?.preferred_username,
-        secretLength: apiSecret?.length,
-        secretPrefix: apiSecret?.substring(0, 4),
-        nodeVersion: process.version,
-      },
-    } as AuthResult;
+    return { authenticated: false, error: `Auth failed: ${message} | secretLen=${apiSecret.length} | node=${process.version}` };
   }
 }
 
