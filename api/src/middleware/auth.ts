@@ -35,8 +35,9 @@ export async function authenticateSuperAdmin(
     return { authenticated: false, error: 'Missing X-Admin-Token header' };
   }
 
+  const apiSecret = process.env.ENTRA_API_CLIENT_SECRET;
+
   try {
-    const apiSecret = process.env.ENTRA_API_CLIENT_SECRET;
     if (!apiSecret) {
       return { authenticated: false, error: 'API client secret not configured' };
     }
