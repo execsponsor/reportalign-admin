@@ -90,6 +90,10 @@ async function getOrganization(req: HttpRequest, context: InvocationContext): Pr
   const id = req.params.id;
   const pool = getPool();
 
+  // Use UUID check to avoid type mismatch on subdomain column
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
+  const whereClause = isUuid ? 'WHERE o.id = $1' : 'WHERE o.subdomain = $1';
+
   const orgResult = await pool.query(
     `SELECT o.*,
             (SELECT COUNT(*) FROM organization_users ou WHERE ou.organization_id = o.id AND ou.is_active = true) as user_count,
@@ -99,7 +103,7 @@ async function getOrganization(req: HttpRequest, context: InvocationContext): Pr
              WHERE ou.organization_id = o.id AND ou.access_level = 'administrator' AND ou.is_active = true
              LIMIT 1) as admin_info
      FROM organizations o
-     WHERE o.id = $1 OR o.subdomain = $1`,
+     ${whereClause}`,
     [id]
   );
 
