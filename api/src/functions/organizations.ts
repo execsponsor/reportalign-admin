@@ -182,8 +182,8 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
 
     // 3. Link user to organization
     await client.query(
-      `INSERT INTO organization_users (organization_id, user_id, access_level, role, is_active)
-       VALUES ($1, $2, 'administrator', 'administrator', true)`,
+      `INSERT INTO organization_users (organization_id, user_id, access_level, role, is_active, primary_role)
+       VALUES ($1, $2, 'administrator', 'administrator', true, 'executive')`,
       [orgId, userId]
     );
 
