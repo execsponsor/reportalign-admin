@@ -7,7 +7,7 @@
 
 import { HttpRequest, InvocationContext } from '@azure/functions';
 import { jwtVerify, createRemoteJWKSet } from 'jose';
-import { getPool } from '../utils/database';
+import { getPool } from '../utils/database.js';
 
 interface AuthResult {
   authenticated: boolean;

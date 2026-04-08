@@ -4,8 +4,8 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
-import { getPool } from '../utils/database';
+import { authenticateSuperAdmin } from '../middleware/auth.js';
+import { getPool } from '../utils/database.js';
 
 async function platformStats(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);

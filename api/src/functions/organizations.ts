@@ -4,14 +4,14 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
-import { getPool } from '../utils/database';
-import { generatePassword, hashPassword, hashEmail } from '../utils/crypto';
+import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
+import { getPool } from '../utils/database.js';
+import { generatePassword, hashPassword, hashEmail } from '../utils/crypto.js';
 import {
   createOrganizationSchema,
   paginationSchema,
   SUBSCRIPTION_LIMITS,
-} from '../utils/validation';
+} from '../utils/validation.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // ============================================================================
