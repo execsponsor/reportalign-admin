@@ -6,6 +6,7 @@ import { OrganizationDetailPage } from './pages/OrganizationDetailPage';
 import { UsersPage } from './pages/UsersPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { AuditLogPage } from './pages/AuditLogPage';
+import { AIPromptTemplatesPage } from './pages/AIPromptTemplatesPage';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/users" element={<UsersPage />} />
         <Route path="/users/:id" element={<UserDetailPage />} />
         <Route path="/audit-log" element={<AuditLogPage />} />
+        <Route path="/ai-prompts" element={<AIPromptTemplatesPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

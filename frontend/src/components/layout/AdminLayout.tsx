@@ -5,6 +5,7 @@ import {
   Building2,
   Users,
   ScrollText,
+  Sparkles,
   Shield,
   LogOut,
 } from 'lucide-react';
@@ -13,6 +14,7 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/organizations', label: 'Organizations', icon: Building2 },
   { path: '/users', label: 'Users', icon: Users },
+  { path: '/ai-prompts', label: 'AI Prompts', icon: Sparkles },
   { path: '/audit-log', label: 'Audit Log', icon: ScrollText },
 ];
 
