@@ -80,9 +80,9 @@ async function getUser(req: HttpRequest, context: InvocationContext): Promise<Ht
     const user = userResult.rows[0];
 
     const orgsResult = await pool.query(
-      `SELECT o.id, o.name, o.subdomain, ou.access_level, ou.role, ou.is_active, ou.created_at
+      `SELECT o.id, o.name, o.subdomain, ou.access_level, ou.role, ou.is_active, ou.joined_at as created_at
        FROM organization_users ou JOIN organizations o ON ou.organization_id = o.id
-       WHERE ou.user_id = $1 ORDER BY ou.created_at`,
+       WHERE ou.user_id = $1 ORDER BY ou.joined_at`,
       [user.id]
     );
 
