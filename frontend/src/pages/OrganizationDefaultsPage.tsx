@@ -15,6 +15,8 @@ import {
   FolderTree,
   Eye,
   UserCog,
+  BarChart3,
+  FileText,
 } from 'lucide-react';
 import {
   useOrganizationDefaults,
@@ -254,6 +256,8 @@ const SECTIONS = [
   { key: 'primary_brand_color', label: 'Brand Color', icon: Palette, description: 'Default primary brand color for new organizations' },
   { key: 'workflow_steps', label: 'Workflow Steps', icon: ListOrdered, description: 'Default report workflow stages' },
   { key: 'workflow_transitions', label: 'Workflow Transitions', icon: ArrowRightLeft, description: 'Allowed transitions between workflow steps' },
+  { key: 'default_indicators', label: 'Key Performance Indicators', icon: BarChart3, description: 'Default KPIs created for every new organization' },
+  { key: 'default_report_template', label: 'Report Template', icon: FileText, description: 'Default reporting template sections and configuration' },
 ];
 
 function StructuredEditor({
@@ -340,6 +344,16 @@ function StructuredEditor({
                   />
                 ) : section.key === 'portfolio_grouping' ? (
                   <PortfolioGroupingEditor
+                    value={sectionValue as Record<string, unknown>}
+                    onChange={(v) => updateSection(section.key, v)}
+                  />
+                ) : section.key === 'default_indicators' ? (
+                  <DefaultIndicatorsEditor
+                    value={sectionValue as Array<Record<string, string>>}
+                    onChange={(v) => updateSection(section.key, v)}
+                  />
+                ) : section.key === 'default_report_template' ? (
+                  <DefaultReportTemplateEditor
                     value={sectionValue as Record<string, unknown>}
                     onChange={(v) => updateSection(section.key, v)}
                   />
@@ -676,6 +690,213 @@ function ToggleField({
       </div>
       <span className="text-sm text-admin-text">{label}</span>
     </label>
+  );
+}
+
+// ============================================================================
+// Default KPI indicators editor
+// ============================================================================
+
+const KPI_CATEGORIES = [
+  { value: 'scope', label: 'Scope' },
+  { value: 'time', label: 'Time / Schedule' },
+  { value: 'cost', label: 'Cost' },
+  { value: 'quality', label: 'Quality' },
+  { value: 'risk', label: 'Risk' },
+  { value: 'benefit', label: 'Benefits' },
+  { value: 'resource', label: 'Resource' },
+  { value: 'stakeholder', label: 'Stakeholder' },
+];
+
+function DefaultIndicatorsEditor({
+  value,
+  onChange,
+}: {
+  value: Array<Record<string, string>>;
+  onChange: (v: Array<Record<string, string>>) => void;
+}) {
+  const indicators = Array.isArray(value) ? value : [];
+
+  const updateIndicator = (index: number, field: string, val: string) => {
+    const updated = [...indicators];
+    updated[index] = { ...updated[index], [field]: val };
+    onChange(updated);
+  };
+
+  const removeIndicator = (index: number) => {
+    onChange(indicators.filter((_, i) => i !== index));
+  };
+
+  const addIndicator = () => {
+    onChange([...indicators, { name: '', category: 'scope', description: '' }]);
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-admin-muted mb-2">
+        These KPIs are created as organization-level default indicators for every new organization.
+      </p>
+      {indicators.map((indicator, index) => (
+        <div key={index} className="flex items-start gap-3 bg-admin-card border border-admin-border rounded-lg p-3">
+          <span className="text-xs text-admin-muted mt-2 w-5 shrink-0">{index + 1}</span>
+          <div className="flex-1 grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-admin-muted mb-1">Name</label>
+              <input
+                type="text"
+                value={indicator.name}
+                onChange={(e) => updateIndicator(index, 'name', e.target.value)}
+                className="w-full bg-admin-bg border border-admin-border rounded-lg px-3 py-2 text-sm text-admin-text focus:outline-none focus:ring-2 focus:ring-admin-accent/50"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-admin-muted mb-1">Category</label>
+              <select
+                value={indicator.category}
+                onChange={(e) => updateIndicator(index, 'category', e.target.value)}
+                className="w-full bg-admin-bg border border-admin-border rounded-lg px-3 py-2 text-sm text-admin-text focus:outline-none focus:ring-2 focus:ring-admin-accent/50"
+              >
+                {KPI_CATEGORIES.map((cat) => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-admin-muted mb-1">Description</label>
+              <input
+                type="text"
+                value={indicator.description}
+                onChange={(e) => updateIndicator(index, 'description', e.target.value)}
+                className="w-full bg-admin-bg border border-admin-border rounded-lg px-3 py-2 text-sm text-admin-text focus:outline-none focus:ring-2 focus:ring-admin-accent/50"
+              />
+            </div>
+          </div>
+          <button
+            onClick={() => removeIndicator(index)}
+            className="mt-6 p-1.5 rounded-lg text-admin-muted hover:text-red-400 hover:bg-admin-surface transition-colors"
+            title="Remove indicator"
+          >
+            &times;
+          </button>
+        </div>
+      ))}
+      <button
+        onClick={addIndicator}
+        className="text-sm text-admin-accent hover:text-admin-accent-hover transition-colors"
+      >
+        + Add indicator
+      </button>
+    </div>
+  );
+}
+
+// ============================================================================
+// Default report template editor
+// ============================================================================
+
+function DefaultReportTemplateEditor({
+  value,
+  onChange,
+}: {
+  value: Record<string, unknown>;
+  onChange: (v: Record<string, unknown>) => void;
+}) {
+  const name = (value.name || '') as string;
+  const description = (value.description || '') as string;
+  const sections = (value.sections || []) as Array<Record<string, unknown>>;
+  const indicatorConfig = (value.indicator_fields_config || {}) as Record<string, boolean>;
+
+  const updateSection = (index: number, field: string, val: unknown) => {
+    const updated = [...sections];
+    updated[index] = { ...updated[index], [field]: val };
+    onChange({ ...value, sections: updated });
+  };
+
+  const moveSection = (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= sections.length) return;
+    const updated = [...sections];
+    [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
+    // Recalculate order values
+    updated.forEach((s, i) => { s.order = i; });
+    onChange({ ...value, sections: updated });
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Template name and description */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs text-admin-muted mb-1">Template Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => onChange({ ...value, name: e.target.value })}
+            className="w-full bg-admin-bg border border-admin-border rounded-lg px-3 py-2 text-sm text-admin-text focus:outline-none focus:ring-2 focus:ring-admin-accent/50"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-admin-muted mb-1">Description</label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => onChange({ ...value, description: e.target.value })}
+            className="w-full bg-admin-bg border border-admin-border rounded-lg px-3 py-2 text-sm text-admin-text focus:outline-none focus:ring-2 focus:ring-admin-accent/50"
+          />
+        </div>
+      </div>
+
+      {/* Indicator field config */}
+      <div>
+        <h4 className="text-sm font-semibold text-white mb-3">Indicator Display Fields</h4>
+        <div className="flex gap-6">
+          <ToggleField label="Show Current Value" checked={indicatorConfig.show_current ?? true}
+            onChange={(v) => onChange({ ...value, indicator_fields_config: { ...indicatorConfig, show_current: v } })} />
+          <ToggleField label="Show Target Value" checked={indicatorConfig.show_target ?? true}
+            onChange={(v) => onChange({ ...value, indicator_fields_config: { ...indicatorConfig, show_target: v } })} />
+          <ToggleField label="Show Trend" checked={indicatorConfig.show_trend ?? true}
+            onChange={(v) => onChange({ ...value, indicator_fields_config: { ...indicatorConfig, show_trend: v } })} />
+        </div>
+      </div>
+
+      {/* Report sections */}
+      <div>
+        <h4 className="text-sm font-semibold text-white mb-3">Report Sections</h4>
+        <p className="text-xs text-admin-muted mb-3">
+          Toggle sections on/off and reorder them. Required sections (Report Info, Status Summary, Indicators) cannot be hidden.
+        </p>
+        <div className="space-y-2">
+          {sections.map((section, index) => {
+            const isRequired = section.required === true;
+            return (
+              <div key={section.id as string} className="flex items-center gap-3 bg-admin-card border border-admin-border rounded-lg px-3 py-2.5">
+                {/* Reorder buttons */}
+                <div className="flex flex-col gap-0.5">
+                  <button onClick={() => moveSection(index, -1)} disabled={index === 0}
+                    className="text-admin-muted hover:text-white disabled:opacity-20 text-xs leading-none">&uarr;</button>
+                  <button onClick={() => moveSection(index, 1)} disabled={index === sections.length - 1}
+                    className="text-admin-muted hover:text-white disabled:opacity-20 text-xs leading-none">&darr;</button>
+                </div>
+                {/* Visible toggle */}
+                <div className="w-10">
+                  {isRequired ? (
+                    <span className="text-xs text-admin-accent" title="Required section">Req</span>
+                  ) : (
+                    <ToggleField label="" checked={section.visible as boolean}
+                      onChange={(v) => updateSection(index, 'visible', v)} />
+                  )}
+                </div>
+                {/* Label */}
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm text-admin-text">{section.label as string}</span>
+                  <span className="text-xs text-admin-muted ml-2">{section.description as string}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 

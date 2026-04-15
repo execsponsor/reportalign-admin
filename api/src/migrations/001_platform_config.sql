@@ -75,6 +75,32 @@ VALUES ('organization_defaults', '{
     { "from_step": "Submitted", "to_step": "Approved", "button_label": "Approve", "button_variant": "success", "allowed_roles": ["Executive"] },
     { "from_step": "Submitted", "to_step": "Rejected", "button_label": "Reject", "button_variant": "destructive", "allowed_roles": ["Executive"] },
     { "from_step": "Submitted", "to_step": "In Review", "button_label": "Request Changes", "button_variant": "secondary", "allowed_roles": ["Executive"] }
-  ]
+  ],
+  "default_indicators": [
+    { "name": "Scope", "category": "scope", "description": "Tracks whether the project scope is being delivered as planned" },
+    { "name": "Schedule", "category": "time", "description": "Monitors timeline adherence and milestone completion" },
+    { "name": "Cost", "category": "cost", "description": "Tracks budget performance and financial health" },
+    { "name": "Quality", "category": "quality", "description": "Measures deliverable quality and defect rates" },
+    { "name": "Risk", "category": "risk", "description": "Assesses overall risk exposure and mitigation effectiveness" },
+    { "name": "Benefits", "category": "benefit", "description": "Tracks benefits realization and value delivery" }
+  ],
+  "default_report_template": {
+    "name": "Standard Report",
+    "description": "Default reporting template for new organizations",
+    "sections": [
+      { "id": "reportInfo", "label": "Report Information", "description": "Basic report metadata and submission details", "visible": true, "order": 0, "required": true },
+      { "id": "statusSummary", "label": "Overall Status Summary", "description": "Executive summary and overall RAG status", "visible": true, "order": 1, "required": true },
+      { "id": "indicators", "label": "Key Indicators", "description": "Performance indicators with RAG status", "visible": true, "order": 2, "required": true },
+      { "id": "progress", "label": "Progress Made", "description": "Achievements and progress in this period", "visible": true, "order": 3 },
+      { "id": "programmeRisksIssues", "label": "Programme Risks & Issues", "description": "Risks and issues from the programme register", "visible": true, "order": 4 },
+      { "id": "decisions", "label": "Decisions Required", "description": "Decisions needed from stakeholders", "visible": true, "order": 5 },
+      { "id": "nextPeriod", "label": "Next Period Activities", "description": "Planned activities for the next period", "visible": true, "order": 6 },
+      { "id": "milestones", "label": "Milestones", "description": "Key milestone status and dates", "visible": true, "order": 7 },
+      { "id": "routeToGreen", "label": "Route to Green", "description": "Recovery plan to return the programme to green status", "visible": true, "order": 8 },
+      { "id": "financial", "label": "Financial Summary", "description": "Budget vs actual financial performance", "visible": false, "order": 9 },
+      { "id": "attachments", "label": "Attachments", "description": "Supporting documents and files", "visible": true, "order": 10 }
+    ],
+    "indicator_fields_config": { "show_current": true, "show_target": true, "show_trend": true }
+  }
 }'::jsonb)
 ON CONFLICT (config_key) DO NOTHING;
