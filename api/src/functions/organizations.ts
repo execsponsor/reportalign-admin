@@ -151,14 +151,51 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
     const passwordHash = await hashPassword(password);
     const emailHash = hashEmail(data.adminEmail);
 
+    // Load configurable defaults from platform_config (fall back to hardcoded if not yet seeded)
+    const configResult = await client.query(
+      "SELECT config_value FROM platform_config WHERE config_key = 'organization_defaults'"
+    );
+    const defaults = configResult.rows.length > 0 ? configResult.rows[0].config_value : null;
+
+    const brandColor = defaults?.primary_brand_color ?? '#1E40AF';
+    const orgSettings = defaults?.organization_settings ?? {
+      terminology_config: { programme: 'Programme', programmes: 'Programmes', workstream: 'Workstream', workstreams: 'Workstreams' },
+      rag_definitions: {
+        red: { description: 'Critical issues requiring immediate attention', label: 'Critical' },
+        amber: { description: 'Some risks or concerns identified', label: 'At Risk' },
+        green: { description: 'On track and progressing as planned', label: 'On Track' },
+      },
+      outcome_framework: 'Balanced Scorecard',
+      fiscal_year_start_month: 4,
+    };
+    const portfolioGrouping = defaults?.portfolio_grouping ?? {
+      grouping_enabled: false, level_1_enabled: false, level_1_name: 'Division', level_2_enabled: false, level_2_name: 'Department',
+    };
+    const workflowStepsDef = defaults?.workflow_steps ?? [
+      { name: 'Draft', sequence_order: 1, is_initial: true, is_terminal: false, terminal_type: null, color: '#6B7280' },
+      { name: 'In Review', sequence_order: 2, is_initial: false, is_terminal: false, terminal_type: null, color: '#3B82F6' },
+      { name: 'Submitted', sequence_order: 3, is_initial: false, is_terminal: false, terminal_type: null, color: '#EAB308' },
+      { name: 'Approved', sequence_order: 4, is_initial: false, is_terminal: true, terminal_type: 'approved', color: '#22C55E' },
+      { name: 'Rejected', sequence_order: 5, is_initial: false, is_terminal: true, terminal_type: 'rejected', color: '#EF4444' },
+    ];
+    const workflowTransitionsDef = defaults?.workflow_transitions ?? [
+      { from_step: 'Draft', to_step: 'In Review', button_label: 'Submit for Review', button_variant: 'outline', allowed_roles: ['Owner', 'Contributor'] },
+      { from_step: 'Draft', to_step: 'Submitted', button_label: 'Submit for Approval', button_variant: 'default', allowed_roles: ['Owner', 'Contributor'] },
+      { from_step: 'In Review', to_step: 'Draft', button_label: 'Return to Draft', button_variant: 'outline', allowed_roles: ['Executive', 'Owner'] },
+      { from_step: 'In Review', to_step: 'Submitted', button_label: 'Submit for Approval', button_variant: 'default', allowed_roles: ['Owner', 'Contributor'] },
+      { from_step: 'Submitted', to_step: 'Approved', button_label: 'Approve', button_variant: 'success', allowed_roles: ['Executive'] },
+      { from_step: 'Submitted', to_step: 'Rejected', button_label: 'Reject', button_variant: 'destructive', allowed_roles: ['Executive'] },
+      { from_step: 'Submitted', to_step: 'In Review', button_label: 'Request Changes', button_variant: 'secondary', allowed_roles: ['Executive'] },
+    ];
+
     await client.query(
       `INSERT INTO organizations (id, name, subdomain, organization_type, is_active,
         max_users, max_programmes, subscription_tier, subscription_status,
         is_beta_customer, primary_brand_color, granted_by_super_admin_id)
-       VALUES ($1, $2, $3, $4, true, $5, $6, $7, 'active', $8, '#1E40AF', $9)`,
+       VALUES ($1, $2, $3, $4, true, $5, $6, $7, 'active', $8, $9, $10)`,
       [orgId, data.name, data.subdomain, data.organizationType,
        limits.maxUsers, limits.maxProgrammes, data.subscriptionTier,
-       data.subscriptionTier === 'beta_customer', auth.superAdminId]
+       data.subscriptionTier === 'beta_customer', brandColor, auth.superAdminId]
     );
 
     let userId: string;
@@ -187,50 +224,42 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
 
     await client.query(
       `INSERT INTO organization_settings (organization_id, terminology_config, rag_definitions, outcome_framework, fiscal_year_start_month)
-       VALUES ($1, '{"programme": "Programme", "programmes": "Programmes", "workstream": "Workstream", "workstreams": "Workstreams"}'::jsonb,
-               '{"red": {"description": "Critical issues requiring immediate attention", "label": "Critical"},
-                 "amber": {"description": "Some risks or concerns identified", "label": "At Risk"},
-                 "green": {"description": "On track and progressing as planned", "label": "On Track"}}'::jsonb,
-               'Balanced Scorecard', 4)`,
-      [orgId]
+       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5)`,
+      [orgId,
+       JSON.stringify(orgSettings.terminology_config),
+       JSON.stringify(orgSettings.rag_definitions),
+       orgSettings.outcome_framework,
+       orgSettings.fiscal_year_start_month]
     );
 
     await client.query(
       `INSERT INTO portfolio_grouping_config (organization_id, grouping_enabled, level_1_enabled, level_1_name, level_2_enabled, level_2_name)
-       VALUES ($1, false, false, 'Division', false, 'Department')`,
-      [orgId]
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [orgId, portfolioGrouping.grouping_enabled, portfolioGrouping.level_1_enabled,
+       portfolioGrouping.level_1_name, portfolioGrouping.level_2_enabled, portfolioGrouping.level_2_name]
     );
 
-    const draftId = uuidv4(), inReviewId = uuidv4(), submittedId = uuidv4(), approvedId = uuidv4(), rejectedId = uuidv4();
-    const steps = [
-      [draftId, 'Draft', 1, true, false, null, '#6B7280'],
-      [inReviewId, 'In Review', 2, false, false, null, '#3B82F6'],
-      [submittedId, 'Submitted', 3, false, false, null, '#EAB308'],
-      [approvedId, 'Approved', 4, false, true, 'approved', '#22C55E'],
-      [rejectedId, 'Rejected', 5, false, true, 'rejected', '#EF4444'],
-    ];
-    for (const [id, name, order, isInitial, isTerminal, terminalType, color] of steps) {
+    // Build workflow steps with UUIDs, mapping name→id for transition resolution
+    const stepIdMap: Record<string, string> = {};
+    for (const step of workflowStepsDef) {
+      const stepId = uuidv4();
+      stepIdMap[step.name] = stepId;
       await client.query(
         `INSERT INTO workflow_steps (id, organization_id, name, sequence_order, is_initial, is_terminal, terminal_type, color)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [id, orgId, name, order, isInitial, isTerminal, terminalType, color]
+        [stepId, orgId, step.name, step.sequence_order, step.is_initial, step.is_terminal, step.terminal_type, step.color]
       );
     }
 
-    const transitions = [
-      [draftId, inReviewId, 'Submit for Review', 'outline', '{Owner,Contributor}'],
-      [draftId, submittedId, 'Submit for Approval', 'default', '{Owner,Contributor}'],
-      [inReviewId, draftId, 'Return to Draft', 'outline', '{Executive,Owner}'],
-      [inReviewId, submittedId, 'Submit for Approval', 'default', '{Owner,Contributor}'],
-      [submittedId, approvedId, 'Approve', 'success', '{Executive}'],
-      [submittedId, rejectedId, 'Reject', 'destructive', '{Executive}'],
-      [submittedId, inReviewId, 'Request Changes', 'secondary', '{Executive}'],
-    ];
-    for (const [from, to, label, variant, roles] of transitions) {
+    for (const t of workflowTransitionsDef) {
+      const fromId = stepIdMap[t.from_step];
+      const toId = stepIdMap[t.to_step];
+      if (!fromId || !toId) continue; // skip if referenced step doesn't exist in config
+      const rolesArray = `{${(t.allowed_roles as string[]).join(',')}}`;
       await client.query(
         `INSERT INTO workflow_transitions (organization_id, from_step_id, to_step_id, button_label, button_variant, allowed_roles)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [orgId, from, to, label, variant, roles]
+        [orgId, fromId, toId, t.button_label, t.button_variant, rolesArray]
       );
     }
 
