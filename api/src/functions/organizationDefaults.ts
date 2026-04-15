@@ -136,7 +136,7 @@ async function updateOrganizationDefaults(req: HttpRequest, context: InvocationC
       auth.superAdminId!,
       'UPDATE_ORGANIZATION_DEFAULTS',
       'platform_config',
-      CONFIG_KEY,
+      null,
       previousValue,
       newDefaults as Record<string, unknown>
     );
