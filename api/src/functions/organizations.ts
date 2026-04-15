@@ -157,6 +157,7 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
     );
     const defaults = configResult.rows.length > 0 ? configResult.rows[0].config_value : null;
 
+    const adminPrimaryRole = defaults?.admin_primary_role ?? 'executive';
     const brandColor = defaults?.primary_brand_color ?? '#1E40AF';
     const orgSettings = defaults?.organization_settings ?? {
       terminology_config: { programme: 'Programme', programmes: 'Programmes', workstream: 'Workstream', workstreams: 'Workstreams' },
@@ -167,6 +168,14 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
       },
       outcome_framework: 'Balanced Scorecard',
       fiscal_year_start_month: 4,
+      user_visibility_mode: 'all',
+      author_can_create_programmes: false,
+      functionality_visibility: {
+        strategic_goals_enabled: false, milestones_enabled: false, workstreams_enabled: false,
+        business_case_enabled: false, risk_issue_register_enabled: false, action_tracking_enabled: false,
+        meeting_management_enabled: false, assurance_enabled: false, communications_enabled: false,
+        briefings_enabled: false, knowledge_hub_enabled: false, community_hub_enabled: false,
+      },
     };
     const portfolioGrouping = defaults?.portfolio_grouping ?? {
       grouping_enabled: false, level_1_enabled: false, level_1_name: 'Division', level_2_enabled: false, level_2_name: 'Department',
@@ -218,18 +227,22 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
 
     await client.query(
       `INSERT INTO organization_users (organization_id, user_id, access_level, role, is_active, primary_role)
-       VALUES ($1, $2, 'administrator', 'administrator', true, 'executive')`,
-      [orgId, userId]
+       VALUES ($1, $2, 'administrator', 'administrator', true, $3)`,
+      [orgId, userId, adminPrimaryRole]
     );
 
     await client.query(
-      `INSERT INTO organization_settings (organization_id, terminology_config, rag_definitions, outcome_framework, fiscal_year_start_month)
-       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5)`,
+      `INSERT INTO organization_settings (organization_id, terminology_config, rag_definitions, outcome_framework, fiscal_year_start_month,
+        user_visibility_mode, author_can_create_programmes, functionality_visibility)
+       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5, $6, $7, $8::jsonb)`,
       [orgId,
        JSON.stringify(orgSettings.terminology_config),
        JSON.stringify(orgSettings.rag_definitions),
        orgSettings.outcome_framework,
-       orgSettings.fiscal_year_start_month]
+       orgSettings.fiscal_year_start_month,
+       orgSettings.user_visibility_mode ?? 'all',
+       orgSettings.author_can_create_programmes ?? false,
+       JSON.stringify(orgSettings.functionality_visibility ?? {})]
     );
 
     await client.query(

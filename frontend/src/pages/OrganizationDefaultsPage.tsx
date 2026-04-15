@@ -13,6 +13,8 @@ import {
   ArrowRightLeft,
   BookOpen,
   FolderTree,
+  Eye,
+  UserCog,
 } from 'lucide-react';
 import {
   useOrganizationDefaults,
@@ -246,7 +248,8 @@ export function OrganizationDefaultsPage() {
 // ============================================================================
 
 const SECTIONS = [
-  { key: 'organization_settings', label: 'Organization Settings', icon: BookOpen, description: 'Terminology, RAG definitions, framework, fiscal year' },
+  { key: 'organization_settings', label: 'Organization Settings', icon: BookOpen, description: 'Terminology, RAG definitions, framework, fiscal year, visibility' },
+  { key: 'admin_primary_role', label: 'Admin Primary Role', icon: UserCog, description: 'Default primary role assigned to the org admin user' },
   { key: 'portfolio_grouping', label: 'Portfolio Grouping', icon: FolderTree, description: 'Division/department hierarchy defaults' },
   { key: 'primary_brand_color', label: 'Brand Color', icon: Palette, description: 'Default primary brand color for new organizations' },
   { key: 'workflow_steps', label: 'Workflow Steps', icon: ListOrdered, description: 'Default report workflow stages' },
@@ -307,6 +310,8 @@ function StructuredEditor({
                     />
                     {sectionValue as string}
                   </span>
+                ) : section.key === 'admin_primary_role' ? (
+                  sectionValue as string
                 ) : Array.isArray(sectionValue) ? (
                   `${sectionValue.length} items`
                 ) : (
@@ -326,6 +331,11 @@ function StructuredEditor({
                 ) : section.key === 'organization_settings' ? (
                   <OrgSettingsEditor
                     value={sectionValue as Record<string, unknown>}
+                    onChange={(v) => updateSection(section.key, v)}
+                  />
+                ) : section.key === 'admin_primary_role' ? (
+                  <AdminPrimaryRoleEditor
+                    value={sectionValue as string}
                     onChange={(v) => updateSection(section.key, v)}
                   />
                 ) : section.key === 'portfolio_grouping' ? (
@@ -376,6 +386,41 @@ function BrandColorEditor({ value, onChange }: { value: string; onChange: (v: st
   );
 }
 
+function AdminPrimaryRoleEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="block text-xs text-admin-muted mb-2">
+        The primary role assigned to the administrator user when a new organization is created.
+      </label>
+      <select
+        value={value || 'executive'}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-64 bg-admin-bg border border-admin-border rounded-lg px-3 py-2 text-sm text-admin-text focus:outline-none focus:ring-2 focus:ring-admin-accent/50"
+      >
+        <option value="executive">Executive</option>
+        <option value="pmo">PMO</option>
+        <option value="programme_manager">Programme Manager</option>
+        <option value="project_manager">Project Manager</option>
+      </select>
+    </div>
+  );
+}
+
+const FEATURE_TOGGLES = [
+  { key: 'strategic_goals_enabled', label: 'Strategic Goals' },
+  { key: 'milestones_enabled', label: 'Milestones' },
+  { key: 'workstreams_enabled', label: 'Workstreams' },
+  { key: 'business_case_enabled', label: 'Business Case' },
+  { key: 'risk_issue_register_enabled', label: 'Risk & Issue Register' },
+  { key: 'action_tracking_enabled', label: 'Action Tracking' },
+  { key: 'meeting_management_enabled', label: 'Meeting Management' },
+  { key: 'assurance_enabled', label: 'Programme Assurance' },
+  { key: 'communications_enabled', label: 'Communications' },
+  { key: 'briefings_enabled', label: 'Briefings' },
+  { key: 'knowledge_hub_enabled', label: 'Knowledge Hub' },
+  { key: 'community_hub_enabled', label: 'Community Hub' },
+];
+
 function OrgSettingsEditor({
   value,
   onChange,
@@ -387,6 +432,9 @@ function OrgSettingsEditor({
   const ragDefs = (value.rag_definitions || {}) as Record<string, { label: string; description: string }>;
   const framework = (value.outcome_framework || '') as string;
   const fiscalMonth = (value.fiscal_year_start_month || 4) as number;
+  const visibilityMode = (value.user_visibility_mode || 'all') as string;
+  const authorCanCreate = (value.author_can_create_programmes || false) as boolean;
+  const funcVisibility = (value.functionality_visibility || {}) as Record<string, boolean>;
 
   const updateTerminology = (key: string, val: string) => {
     onChange({ ...value, terminology_config: { ...terminology, [key]: val } });
@@ -484,6 +532,63 @@ function OrgSettingsEditor({
               <option key={i + 1} value={i + 1}>{name}</option>
             ))}
           </select>
+        </div>
+      </div>
+
+      {/* Visibility Settings */}
+      <div>
+        <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <Eye className="h-4 w-4 text-admin-accent" />
+          Visibility Settings
+        </h4>
+
+        {/* Content Visibility Mode */}
+        <div className="mb-4">
+          <label className="block text-xs text-admin-muted mb-2">Content Visibility Mode</label>
+          <div className="flex gap-4">
+            {(['all', 'assigned_only'] as const).map((mode) => (
+              <label key={mode} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="visibility_mode"
+                  checked={visibilityMode === mode}
+                  onChange={() => onChange({ ...value, user_visibility_mode: mode })}
+                  className="accent-admin-accent"
+                />
+                <span className="text-sm text-admin-text">
+                  {mode === 'all' ? 'All programmes visible to all users' : 'Only assigned programmes visible'}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Author Can Create */}
+        <div className="mb-4">
+          <ToggleField
+            label="Allow Authors to create programmes"
+            checked={authorCanCreate}
+            onChange={(v) => onChange({ ...value, author_can_create_programmes: v })}
+          />
+        </div>
+
+        {/* Feature Toggles */}
+        <label className="block text-xs text-admin-muted mb-2">Feature Visibility Toggles</label>
+        <div className="grid grid-cols-2 gap-3">
+          {FEATURE_TOGGLES.map((feat) => (
+            <div key={feat.key} className="bg-admin-card border border-admin-border rounded-lg px-3 py-2.5">
+              <ToggleField
+                label={feat.label}
+                checked={funcVisibility[feat.key] ?? false}
+                onChange={(v) =>
+                  onChange({
+                    ...value,
+                    functionality_visibility: { ...funcVisibility, [feat.key]: v },
+                  })
+                }
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>
