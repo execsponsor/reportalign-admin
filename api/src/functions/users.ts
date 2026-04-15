@@ -65,45 +65,53 @@ async function getUser(req: HttpRequest, context: InvocationContext): Promise<Ht
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
-  const id = req.params.id;
-  const pool = getPool();
+  try {
+    const id = req.params.id;
+    const pool = getPool();
 
-  const userResult = await pool.query(
-    `SELECT u.id, u.email, u.first_name, u.last_name, u.is_active, u.email_verified,
-            u.last_login, u.created_at, u.locked_until, u.failed_login_attempts
-     FROM users u WHERE u.id = $1 OR u.email = $1`,
-    [id]
-  );
+    const userResult = await pool.query(
+      `SELECT u.id, u.email, u.first_name, u.last_name, u.is_active, u.email_verified,
+              u.last_login, u.created_at, u.locked_until, u.failed_login_attempts
+       FROM users u WHERE u.id = $1`,
+      [id]
+    );
 
-  if (userResult.rows.length === 0) return { status: 404, jsonBody: { error: 'User not found' } };
-  const user = userResult.rows[0];
+    if (userResult.rows.length === 0) return { status: 404, jsonBody: { success: false, error: 'User not found' } };
+    const user = userResult.rows[0];
 
-  const orgsResult = await pool.query(
-    `SELECT o.id, o.name, o.subdomain, ou.access_level, ou.role, ou.is_active, ou.created_at
-     FROM organization_users ou JOIN organizations o ON ou.organization_id = o.id
-     WHERE ou.user_id = $1 ORDER BY ou.created_at`,
-    [user.id]
-  );
+    const orgsResult = await pool.query(
+      `SELECT o.id, o.name, o.subdomain, ou.access_level, ou.role, ou.is_active, ou.joined_at as created_at
+       FROM organization_users ou JOIN organizations o ON ou.organization_id = o.id
+       WHERE ou.user_id = $1 ORDER BY ou.joined_at`,
+      [user.id]
+    );
 
-  const programmesResult = await pool.query(
-    `SELECT p.name, ptm.programme_role, p.id as programme_id
-     FROM programme_team_members ptm JOIN programmes p ON ptm.programme_id = p.id
-     WHERE ptm.user_id = $1 AND ptm.removed_at IS NULL
-     ORDER BY p.name`,
-    [user.id]
-  );
+    const programmesResult = await pool.query(
+      `SELECT p.name, ptm.programme_role, p.id as programme_id
+       FROM programme_team_members ptm JOIN programmes p ON ptm.programme_id = p.id
+       WHERE ptm.user_id = $1 AND ptm.removed_at IS NULL
+       ORDER BY p.name`,
+      [user.id]
+    );
 
-  return {
-    status: 200,
-    jsonBody: {
-      success: true,
-      data: {
-        ...user,
-        organizations: orgsResult.rows,
-        programmes: programmesResult.rows,
+    return {
+      status: 200,
+      jsonBody: {
+        success: true,
+        data: {
+          ...user,
+          organizations: orgsResult.rows,
+          programmes: programmesResult.rows,
+        },
       },
-    },
-  };
+    };
+  } catch (err) {
+    context.error('getUser error:', err instanceof Error ? err.message : String(err));
+    return {
+      status: 500,
+      jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' },
+    };
+  }
 }
 
 // POST /api/users — Create user

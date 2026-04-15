@@ -1,6 +1,6 @@
 /**
- * Subscription & Billing Azure Functions
- * Cross-org subscription overview, trial tracking, MRR
+ * Subscription Overview Azure Functions
+ * Cross-org subscription tiers, limits, and beta tracking
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
@@ -15,84 +15,76 @@ async function getSubscriptionOverview(req: HttpRequest, context: InvocationCont
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
-  const pool = getPool();
+  try {
+    const pool = getPool();
 
-  // Subscription distribution by tier
-  const byTier = await pool.query(
-    `SELECT subscription_tier, COUNT(*) as count
-     FROM organizations GROUP BY subscription_tier ORDER BY count DESC`
-  );
+    // Subscription distribution by tier
+    const byTier = await pool.query(
+      `SELECT subscription_tier, COUNT(*) as count
+       FROM organizations GROUP BY subscription_tier ORDER BY count DESC`
+    );
 
-  // Subscription distribution by status
-  const byStatus = await pool.query(
-    `SELECT subscription_status, COUNT(*) as count
-     FROM organizations GROUP BY subscription_status ORDER BY count DESC`
-  );
+    // Subscription distribution by status
+    const byStatus = await pool.query(
+      `SELECT subscription_status, COUNT(*) as count
+       FROM organizations GROUP BY subscription_status ORDER BY count DESC`
+    );
 
-  // Active trials with days remaining
-  const activeTrials = await pool.query(
-    `SELECT id, name, subdomain, subscription_tier, trial_ends_at,
-            EXTRACT(DAY FROM trial_ends_at - NOW()) as days_remaining,
-            (SELECT COUNT(*) FROM organization_users ou WHERE ou.organization_id = o.id AND ou.is_active = true) as user_count
-     FROM organizations o
-     WHERE subscription_status = 'trial' AND trial_ends_at IS NOT NULL AND trial_ends_at > NOW()
-     ORDER BY trial_ends_at ASC`
-  );
+    // Beta customers with expiration tracking
+    const betaCustomers = await pool.query(
+      `SELECT id, name, subdomain, subscription_tier, beta_start_date, beta_expiration_date, beta_notes,
+              CASE WHEN beta_expiration_date IS NOT NULL
+                   THEN EXTRACT(DAY FROM beta_expiration_date - NOW())
+                   ELSE NULL END as days_remaining,
+              (SELECT COUNT(*) FROM organization_users ou WHERE ou.organization_id = o.id AND ou.is_active = true) as user_count
+       FROM organizations o
+       WHERE is_beta_customer = true AND is_active = true
+       ORDER BY beta_expiration_date ASC NULLS LAST`
+    );
 
-  // Recently expired trials (last 30 days)
-  const expiredTrials = await pool.query(
-    `SELECT id, name, subdomain, trial_ends_at
-     FROM organizations
-     WHERE subscription_status = 'trial' AND trial_ends_at IS NOT NULL AND trial_ends_at <= NOW()
-       AND trial_ends_at >= NOW() - INTERVAL '30 days'
-     ORDER BY trial_ends_at DESC`
-  );
+    // Orgs approaching limits (>80% of max_users or max_programmes)
+    const approachingLimits = await pool.query(
+      `SELECT o.id, o.name, o.subdomain, o.max_users, o.max_programmes, o.subscription_tier,
+              (SELECT COUNT(*) FROM organization_users ou WHERE ou.organization_id = o.id AND ou.is_active = true) as current_users,
+              (SELECT COUNT(*) FROM programmes p WHERE p.organization_id = o.id AND p.deleted_at IS NULL) as current_programmes
+       FROM organizations o
+       WHERE o.is_active = true AND o.max_users > 0 AND o.max_programmes > 0
+       ORDER BY o.name`
+    );
 
-  // Billing interval breakdown
-  const byInterval = await pool.query(
-    `SELECT COALESCE(billing_interval, 'none') as interval, COUNT(*) as count
-     FROM organizations
-     WHERE subscription_status = 'active'
-     GROUP BY billing_interval`
-  );
+    // Filter in JS to avoid HAVING with correlated subqueries
+    const atLimit = approachingLimits.rows.filter((o) => {
+      const userPct = parseInt(o.current_users) / o.max_users;
+      const progPct = parseInt(o.current_programmes) / o.max_programmes;
+      return userPct >= 0.8 || progPct >= 0.8;
+    });
 
-  // Recent Stripe events (last 20)
-  const recentStripeEvents = await pool.query(
-    `SELECT se.id, se.stripe_event_id, se.event_type, se.status, se.error_message,
-            se.created_at, o.name as org_name, o.subdomain
-     FROM stripe_events se
-     LEFT JOIN organizations o ON se.organization_id = o.id
-     ORDER BY se.created_at DESC
-     LIMIT 20`
-  );
+    // Recently created orgs (last 30 days)
+    const recentOrgs = await pool.query(
+      `SELECT id, name, subdomain, subscription_tier, subscription_status, is_beta_customer, created_at,
+              (SELECT COUNT(*) FROM organization_users ou WHERE ou.organization_id = o.id AND ou.is_active = true) as user_count
+       FROM organizations o
+       WHERE created_at >= NOW() - INTERVAL '30 days'
+       ORDER BY created_at DESC`
+    );
 
-  // Orgs approaching limits
-  const approachingLimits = await pool.query(
-    `SELECT o.id, o.name, o.subdomain, o.max_users, o.max_programmes, o.subscription_tier,
-            (SELECT COUNT(*) FROM organization_users ou WHERE ou.organization_id = o.id AND ou.is_active = true) as current_users,
-            (SELECT COUNT(*) FROM programmes p WHERE p.organization_id = o.id AND p.deleted_at IS NULL) as current_programmes
-     FROM organizations o
-     WHERE o.is_active = true
-     HAVING (SELECT COUNT(*) FROM organization_users ou WHERE ou.organization_id = o.id AND ou.is_active = true) >= o.max_users * 0.8
-        OR (SELECT COUNT(*) FROM programmes p WHERE p.organization_id = o.id AND p.deleted_at IS NULL) >= o.max_programmes * 0.8
-     ORDER BY o.name`
-  );
-
-  return {
-    status: 200,
-    jsonBody: {
-      success: true,
-      data: {
-        by_tier: byTier.rows,
-        by_status: byStatus.rows,
-        by_interval: byInterval.rows,
-        active_trials: activeTrials.rows,
-        expired_trials: expiredTrials.rows,
-        approaching_limits: approachingLimits.rows,
-        recent_stripe_events: recentStripeEvents.rows,
+    return {
+      status: 200,
+      jsonBody: {
+        success: true,
+        data: {
+          by_tier: byTier.rows,
+          by_status: byStatus.rows,
+          beta_customers: betaCustomers.rows,
+          approaching_limits: atLimit,
+          recent_orgs: recentOrgs.rows,
+        },
       },
-    },
-  };
+    };
+  } catch (err) {
+    context.error('getSubscriptionOverview error:', err instanceof Error ? err.message : String(err));
+    return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
+  }
 }
 
 app.http('getSubscriptionOverview', {
