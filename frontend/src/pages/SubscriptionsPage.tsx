@@ -1,16 +1,11 @@
-import { CreditCard, AlertTriangle, Loader2, Clock } from 'lucide-react';
+import { CreditCard, AlertTriangle, Loader2, Clock, Plus } from 'lucide-react';
 import { useSubscriptionOverview } from '../hooks/useSubscriptions';
 import { Link } from 'react-router-dom';
 
 const tierColors: Record<string, string> = {
-  free: 'text-admin-muted',
-  starter: 'text-blue-400',
-  standard: 'text-blue-400',
-  professional: 'text-purple-400',
-  pro: 'text-purple-400',
-  enterprise: 'text-yellow-400',
-  max: 'text-yellow-400',
-  beta_customer: 'text-green-400',
+  free: 'text-admin-muted', starter: 'text-blue-400', standard: 'text-blue-400',
+  professional: 'text-purple-400', pro: 'text-purple-400', enterprise: 'text-yellow-400',
+  max: 'text-yellow-400', beta_customer: 'text-green-400',
 };
 
 const statusColors: Record<string, string> = {
@@ -29,14 +24,13 @@ export function SubscriptionsPage() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
           <CreditCard className="h-5 w-5 text-emerald-400" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white">Subscriptions & Billing</h1>
-          <p className="text-sm text-admin-muted">Subscription tiers, trials, limits, and Stripe events</p>
+          <h1 className="text-2xl font-bold text-white">Subscriptions</h1>
+          <p className="text-sm text-admin-muted">Subscription tiers, beta customers, and usage limits</p>
         </div>
       </div>
 
@@ -70,24 +64,29 @@ export function SubscriptionsPage() {
         </div>
       </div>
 
-      {/* Active trials */}
-      {data.active_trials.length > 0 && (
+      {/* Beta customers */}
+      {data.beta_customers.length > 0 && (
         <div className="bg-admin-surface border border-admin-border rounded-xl p-5 mb-6">
           <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-blue-400" />Active Trials ({data.active_trials.length})
+            <Clock className="h-4 w-4 text-green-400" />Beta Customers ({data.beta_customers.length})
           </h3>
           <div className="space-y-3">
-            {data.active_trials.map((t) => {
-              const days = Math.floor(parseFloat(t.days_remaining));
+            {data.beta_customers.map((b) => {
+              const days = b.days_remaining ? Math.floor(parseFloat(b.days_remaining)) : null;
               return (
-                <div key={t.id} className="flex items-center justify-between bg-admin-card border border-admin-border rounded-lg px-4 py-3">
+                <div key={b.id} className="flex items-center justify-between bg-admin-card border border-admin-border rounded-lg px-4 py-3">
                   <div>
-                    <Link to={`/organizations/${t.id}`} className="text-sm font-medium text-admin-accent hover:underline">{t.name}</Link>
-                    <p className="text-xs text-admin-muted">{t.subdomain} / {t.subscription_tier} / {t.user_count} users</p>
+                    <Link to={`/organizations/${b.id}`} className="text-sm font-medium text-admin-accent hover:underline">{b.name}</Link>
+                    <p className="text-xs text-admin-muted">{b.subdomain} / {b.user_count} users</p>
+                    {b.beta_notes && <p className="text-xs text-admin-muted mt-1">{b.beta_notes}</p>}
                   </div>
-                  <span className={`text-sm font-bold ${days <= 3 ? 'text-red-400' : days <= 7 ? 'text-yellow-400' : 'text-admin-text'}`}>
-                    {days}d left
-                  </span>
+                  {days !== null ? (
+                    <span className={`text-sm font-bold ${days <= 7 ? 'text-red-400' : days <= 30 ? 'text-yellow-400' : 'text-admin-text'}`}>
+                      {days}d left
+                    </span>
+                  ) : (
+                    <span className="text-xs text-admin-muted">No expiry set</span>
+                  )}
                 </div>
               );
             })}
@@ -122,30 +121,33 @@ export function SubscriptionsPage() {
         </div>
       )}
 
-      {/* Recent Stripe events */}
-      {data.recent_stripe_events.length > 0 && (
+      {/* Recently created orgs */}
+      {data.recent_orgs.length > 0 && (
         <div className="bg-admin-surface border border-admin-border rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-white mb-4">Recent Stripe Events</h3>
+          <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <Plus className="h-4 w-4 text-admin-accent" />Recently Created (30 days)
+          </h3>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-admin-border text-left text-admin-muted text-xs uppercase tracking-wider">
-                <th className="pb-3">Time</th>
-                <th className="pb-3">Event</th>
                 <th className="pb-3">Organisation</th>
+                <th className="pb-3">Tier</th>
                 <th className="pb-3">Status</th>
+                <th className="pb-3">Users</th>
+                <th className="pb-3">Created</th>
               </tr>
             </thead>
             <tbody>
-              {data.recent_stripe_events.map((e) => (
-                <tr key={e.id} className="border-b border-admin-border/30">
-                  <td className="py-2 text-xs text-admin-muted">{new Date(e.created_at).toLocaleString()}</td>
-                  <td className="py-2 text-xs text-admin-text font-mono">{e.event_type}</td>
-                  <td className="py-2 text-xs text-admin-text">{e.org_name || '---'}</td>
+              {data.recent_orgs.map((o) => (
+                <tr key={o.id} className="border-b border-admin-border/30">
                   <td className="py-2">
-                    <span className={`text-xs ${e.error_message ? 'text-red-400' : 'text-green-400'}`}>
-                      {e.error_message || e.status}
-                    </span>
+                    <Link to={`/organizations/${o.id}`} className="text-admin-accent hover:underline">{o.name}</Link>
+                    <span className="text-admin-muted text-xs ml-2">{o.subdomain}</span>
                   </td>
+                  <td className="py-2"><span className={`capitalize ${tierColors[o.subscription_tier] || ''}`}>{o.subscription_tier}</span></td>
+                  <td className="py-2"><span className={`text-xs px-2 py-0.5 rounded-full border ${statusColors[o.subscription_status] || ''}`}>{o.subscription_status}</span></td>
+                  <td className="py-2 text-admin-text">{o.user_count}</td>
+                  <td className="py-2 text-admin-muted text-xs">{new Date(o.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
