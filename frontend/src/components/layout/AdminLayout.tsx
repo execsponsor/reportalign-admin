@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Building2,
   Users,
+  Settings2,
   ShieldAlert,
   Sparkles,
   Brain,
@@ -19,6 +20,7 @@ import {
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/organizations', label: 'Organizations', icon: Building2 },
+  { path: '/organization-defaults', label: 'Org Defaults', icon: Settings2 },
   { path: '/users', label: 'Users', icon: Users },
   { path: '/security', label: 'Security', icon: ShieldAlert },
   { path: '/ai-prompts', label: 'AI Prompts', icon: Sparkles },

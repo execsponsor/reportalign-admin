@@ -13,6 +13,7 @@ import { BroadcastsPage } from './pages/BroadcastsPage';
 import { PlatformHealthPage } from './pages/PlatformHealthPage';
 import { SubscriptionsPage } from './pages/SubscriptionsPage';
 import { ReportCompliancePage } from './pages/ReportCompliancePage';
+import { OrganizationDefaultsPage } from './pages/OrganizationDefaultsPage';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
       <Route element={<AdminLayout />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/organizations" element={<OrganizationsPage />} />
+        <Route path="/organization-defaults" element={<OrganizationDefaultsPage />} />
         <Route path="/organizations/:id" element={<OrganizationDetailPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/users/:id" element={<UserDetailPage />} />
