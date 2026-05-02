@@ -15,6 +15,7 @@ import {
   ScrollText,
   Shield,
   LogOut,
+  Gauge,
 } from 'lucide-react';
 
 const navItems = [
@@ -25,6 +26,7 @@ const navItems = [
   { path: '/security', label: 'Security', icon: ShieldAlert },
   { path: '/ai-prompts', label: 'AI Prompts', icon: Sparkles },
   { path: '/ai-usage', label: 'AI Usage', icon: Brain },
+  { path: '/contradiction-rules', label: 'PA Rules', icon: Gauge },
   { path: '/subscriptions', label: 'Subscriptions', icon: CreditCard },
   { path: '/compliance', label: 'Compliance', icon: FileBarChart },
   { path: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
