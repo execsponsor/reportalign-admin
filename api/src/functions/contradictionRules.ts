@@ -147,13 +147,13 @@ async function updateContradictionRule(req: HttpRequest, context: InvocationCont
 app.http('listContradictionRules', {
   methods: ['GET'],
   authLevel: 'anonymous',
-  route: 'api/contradiction-rules',
+  route: 'contradiction-rules',
   handler: listContradictionRules,
 });
 
 app.http('updateContradictionRule', {
   methods: ['PATCH'],
   authLevel: 'anonymous',
-  route: 'api/contradiction-rules/{ruleId}',
+  route: 'contradiction-rules/{ruleId}',
   handler: updateContradictionRule,
 });
