@@ -40,6 +40,7 @@ const HARDCODED_DEFAULTS = {
       briefings_enabled: false,
       knowledge_hub_enabled: false,
       community_hub_enabled: false,
+      predictive_assurance_enabled: false,
     },
   },
   portfolio_grouping: {

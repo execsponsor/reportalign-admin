@@ -175,6 +175,7 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
         business_case_enabled: false, risk_issue_register_enabled: false, action_tracking_enabled: false,
         meeting_management_enabled: false, assurance_enabled: false, communications_enabled: false,
         briefings_enabled: false, knowledge_hub_enabled: false, community_hub_enabled: false,
+        predictive_assurance_enabled: false,
       },
     };
     const portfolioGrouping = defaults?.portfolio_grouping ?? {
