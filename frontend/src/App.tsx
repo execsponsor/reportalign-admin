@@ -14,6 +14,7 @@ import { PlatformHealthPage } from './pages/PlatformHealthPage';
 import { SubscriptionsPage } from './pages/SubscriptionsPage';
 import { ReportCompliancePage } from './pages/ReportCompliancePage';
 import { OrganizationDefaultsPage } from './pages/OrganizationDefaultsPage';
+import { ContradictionRulesPage } from './pages/ContradictionRulesPage';
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/security" element={<SecurityEventsPage />} />
         <Route path="/ai-prompts" element={<AIPromptTemplatesPage />} />
         <Route path="/ai-usage" element={<AIUsagePage />} />
+        <Route path="/contradiction-rules" element={<ContradictionRulesPage />} />
         <Route path="/broadcasts" element={<BroadcastsPage />} />
         <Route path="/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/compliance" element={<ReportCompliancePage />} />
