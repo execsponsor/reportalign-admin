@@ -46,8 +46,8 @@ export function useContradictionRules() {
   return useQuery<{ rules: ContradictionRule[]; stats: RuleStats }>({
     queryKey: ['contradiction-rules'],
     queryFn: async () => {
-      const res = await apiClient.get('/api/contradiction-rules');
-      return res.data.data;
+      const res = await apiClient.get('/contradiction-rules');
+      return res.data;
     },
   });
 }
@@ -57,7 +57,7 @@ export function useUpdateContradictionRule() {
 
   return useMutation({
     mutationFn: async ({ ruleId, updates }: { ruleId: string; updates: Record<string, unknown> }) => {
-      const res = await apiClient.patch(`/api/contradiction-rules/${ruleId}`, updates);
+      const res = await apiClient.patch(`/contradiction-rules/${ruleId}`, updates);
       return res.data;
     },
     onSuccess: () => {
