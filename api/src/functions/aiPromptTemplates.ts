@@ -5,6 +5,7 @@
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
+import { checkRateLimit } from '../middleware/rateLimit.js';
 import { getPool } from '../utils/database.js';
 
 const VALID_TEMPLATE_KEYS = ['improve', 'expand', 'summarize', 'formalize', 'executive_summary', 'risk_analysis', 'status_narrative', 'recommendation', 'board_brief'];
@@ -68,6 +69,9 @@ async function getAIPromptTemplate(req: HttpRequest, context: InvocationContext)
 }
 
 async function updateAIPromptTemplate(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
@@ -117,6 +121,6 @@ async function updateAIPromptTemplate(req: HttpRequest, context: InvocationConte
   }
 }
 
-app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates', handler: listAIPromptTemplates });
-app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: getAIPromptTemplate });
-app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: updateAIPromptTemplate });
+app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'function', route: 'ai-prompt-templates', handler: listAIPromptTemplates });
+app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'function', route: 'ai-prompt-templates/{templateKey}', handler: getAIPromptTemplate });
+app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'function', route: 'ai-prompt-templates/{templateKey}', handler: updateAIPromptTemplate });

@@ -5,6 +5,7 @@
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
+import { checkRateLimit } from '../middleware/rateLimit.js';
 import { getPool } from '../utils/database.js';
 import { generatePassword, hashPassword, hashEmail } from '../utils/crypto.js';
 import {
@@ -128,6 +129,9 @@ async function getOrganization(req: HttpRequest, context: InvocationContext): Pr
 // ============================================================================
 
 async function createOrganization(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
@@ -341,7 +345,7 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
         data: {
           organizationId: orgId,
           subdomain: data.subdomain,
-          url: `https://${data.subdomain}.execsponsor.com`,
+          url: `https://${data.subdomain}.${process.env.PLATFORM_DOMAIN || 'execsponsor.com'}`,
           adminEmail: data.adminEmail,
           adminPassword: password,
           userId,
@@ -364,6 +368,9 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
 // ============================================================================
 
 async function updateOrganization(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
@@ -423,7 +430,7 @@ async function updateOrganization(req: HttpRequest, context: InvocationContext):
 // Register routes
 // ============================================================================
 
-app.http('listOrganizations', { methods: ['GET'], authLevel: 'anonymous', route: 'organizations', handler: listOrganizations });
-app.http('getOrganization', { methods: ['GET'], authLevel: 'anonymous', route: 'organizations/{id}', handler: getOrganization });
-app.http('createOrganization', { methods: ['POST'], authLevel: 'anonymous', route: 'organizations', handler: createOrganization });
-app.http('updateOrganization', { methods: ['PATCH'], authLevel: 'anonymous', route: 'organizations/{id}', handler: updateOrganization });
+app.http('listOrganizations', { methods: ['GET'], authLevel: 'function', route: 'organizations', handler: listOrganizations });
+app.http('getOrganization', { methods: ['GET'], authLevel: 'function', route: 'organizations/{id}', handler: getOrganization });
+app.http('createOrganization', { methods: ['POST'], authLevel: 'function', route: 'organizations', handler: createOrganization });
+app.http('updateOrganization', { methods: ['PATCH'], authLevel: 'function', route: 'organizations/{id}', handler: updateOrganization });

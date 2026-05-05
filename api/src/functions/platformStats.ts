@@ -51,11 +51,11 @@ async function platformStats(req: HttpRequest, context: InvocationContext): Prom
         data: {
           organizations: orgs.rows[0],
           users: users.rows[0],
-          programmes: { total: parseInt(programmes.rows[0].total) },
-          reports: { total: parseInt(reports.rows[0].total) },
+          programmes: { total: parseInt(programmes.rows[0]?.total ?? '0') },
+          reports: { total: parseInt(reports.rows[0]?.total ?? '0') },
           recentActivity: {
-            newOrgs30d: parseInt(recentOrgs.rows[0].count),
-            newUsers30d: parseInt(recentUsers.rows[0].count),
+            newOrgs30d: parseInt(recentOrgs.rows[0]?.count ?? '0'),
+            newUsers30d: parseInt(recentUsers.rows[0]?.count ?? '0'),
           },
           subscriptions: subscriptions.rows,
         },
@@ -67,4 +67,4 @@ async function platformStats(req: HttpRequest, context: InvocationContext): Prom
   }
 }
 
-app.http('platformStats', { methods: ['GET'], authLevel: 'anonymous', route: 'platform-stats', handler: platformStats });
+app.http('platformStats', { methods: ['GET'], authLevel: 'function', route: 'platform-stats', handler: platformStats });

@@ -18,10 +18,11 @@ function getPool(): Pool {
       max: 5, // Low for serverless — functions scale independently
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
+      statement_timeout: 30000, // 30s query timeout to prevent runaway queries
     };
 
     if (process.env.DB_SSL === 'true') {
-      config.ssl = { rejectUnauthorized: false };
+      config.ssl = { rejectUnauthorized: true };
     }
 
     pool = new Pool(config);

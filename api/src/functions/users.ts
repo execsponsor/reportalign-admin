@@ -4,6 +4,7 @@
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
+import { checkRateLimit } from '../middleware/rateLimit.js';
 import { getPool } from '../utils/database.js';
 import { generatePassword, hashPassword, hashEmail } from '../utils/crypto.js';
 import { createUserSchema, paginationSchema } from '../utils/validation.js';
@@ -116,6 +117,9 @@ async function getUser(req: HttpRequest, context: InvocationContext): Promise<Ht
 
 // POST /api/users — Create user
 async function createUser(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
@@ -162,6 +166,9 @@ async function createUser(req: HttpRequest, context: InvocationContext): Promise
 
 // POST /api/users/:id/unlock — Unlock account
 async function unlockUser(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
@@ -180,6 +187,9 @@ async function unlockUser(req: HttpRequest, context: InvocationContext): Promise
 
 // POST /api/users/:id/reset-password — Reset password
 async function resetPassword(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
@@ -207,6 +217,9 @@ async function resetPassword(req: HttpRequest, context: InvocationContext): Prom
 
 // POST /api/users/:id/deactivate — Deactivate
 async function deactivateUser(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
@@ -223,6 +236,9 @@ async function deactivateUser(req: HttpRequest, context: InvocationContext): Pro
 
 // POST /api/users/:id/reactivate — Reactivate
 async function reactivateUser(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
@@ -238,10 +254,10 @@ async function reactivateUser(req: HttpRequest, context: InvocationContext): Pro
 }
 
 // Register routes
-app.http('listUsers', { methods: ['GET'], authLevel: 'anonymous', route: 'users', handler: listUsers });
-app.http('getUser', { methods: ['GET'], authLevel: 'anonymous', route: 'users/{id}', handler: getUser });
-app.http('createUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users', handler: createUser });
-app.http('unlockUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/unlock', handler: unlockUser });
-app.http('resetPassword', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/reset-password', handler: resetPassword });
-app.http('deactivateUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/deactivate', handler: deactivateUser });
-app.http('reactivateUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/reactivate', handler: reactivateUser });
+app.http('listUsers', { methods: ['GET'], authLevel: 'function', route: 'users', handler: listUsers });
+app.http('getUser', { methods: ['GET'], authLevel: 'function', route: 'users/{id}', handler: getUser });
+app.http('createUser', { methods: ['POST'], authLevel: 'function', route: 'users', handler: createUser });
+app.http('unlockUser', { methods: ['POST'], authLevel: 'function', route: 'users/{id}/unlock', handler: unlockUser });
+app.http('resetPassword', { methods: ['POST'], authLevel: 'function', route: 'users/{id}/reset-password', handler: resetPassword });
+app.http('deactivateUser', { methods: ['POST'], authLevel: 'function', route: 'users/{id}/deactivate', handler: deactivateUser });
+app.http('reactivateUser', { methods: ['POST'], authLevel: 'function', route: 'users/{id}/reactivate', handler: reactivateUser });
