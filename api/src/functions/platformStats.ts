@@ -6,6 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 async function platformStats(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -49,15 +50,15 @@ async function platformStats(req: HttpRequest, context: InvocationContext): Prom
       jsonBody: {
         success: true,
         data: {
-          organizations: orgs.rows[0],
-          users: users.rows[0],
+          organizations: snakeToCamel(orgs.rows[0]),
+          users: snakeToCamel(users.rows[0]),
           programmes: { total: parseInt(programmes.rows[0]?.total ?? '0') },
           reports: { total: parseInt(reports.rows[0]?.total ?? '0') },
           recentActivity: {
             newOrgs30d: parseInt(recentOrgs.rows[0]?.count ?? '0'),
             newUsers30d: parseInt(recentUsers.rows[0]?.count ?? '0'),
           },
-          subscriptions: subscriptions.rows,
+          subscriptions: snakeToCamel(subscriptions.rows),
         },
       },
     };

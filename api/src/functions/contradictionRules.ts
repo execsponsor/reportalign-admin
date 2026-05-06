@@ -7,6 +7,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
 import { checkRateLimit } from '../middleware/rateLimit.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 /** Shape of a contradiction rule row joined with its conditions */
 interface ContradictionRuleRow {
@@ -112,7 +113,7 @@ async function listContradictionRules(req: HttpRequest, context: InvocationConte
       stats.by_archetype[r.archetype] = (stats.by_archetype[r.archetype] || 0) + 1;
     }
 
-    return { status: 200, jsonBody: { success: true, data: { rules, stats } } };
+    return { status: 200, jsonBody: { success: true, data: { rules: snakeToCamel(rules), stats: snakeToCamel(stats) } } };
   } catch (err) {
     context.error('listContradictionRules error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };

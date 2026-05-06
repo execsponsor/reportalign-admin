@@ -6,6 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 async function getPlatformHealth(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -37,19 +38,19 @@ async function getPlatformHealth(req: HttpRequest, context: InvocationContext): 
         data: {
           database: {
             status: dbCheck.rows[0].ok === 1 ? 'healthy' : 'error',
-            latency_ms: dbLatencyMs,
-            server_time: dbCheck.rows[0].server_time,
+            latencyMs: dbLatencyMs,
+            serverTime: dbCheck.rows[0].server_time,
             size: dbSize.rows[0].size_pretty,
-            size_bytes: parseInt(dbSize.rows[0].size_bytes),
-            connections: activeConnections.rows[0],
+            sizeBytes: parseInt(dbSize.rows[0].size_bytes),
+            connections: snakeToCamel(activeConnections.rows[0]),
             pool: poolStats,
           },
-          table_sizes: tableSizes.rows,
-          platform: { ...platformCounts.rows[0], ...recentActivity.rows[0] },
+          tableSizes: snakeToCamel(tableSizes.rows),
+          platform: snakeToCamel({ ...platformCounts.rows[0], ...recentActivity.rows[0] }),
           process: {
-            uptime_seconds: Math.floor(process.uptime()),
-            node_version: process.version,
-            memory: { heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024), heap_total_mb: Math.round(mem.heapTotal / 1024 / 1024), rss_mb: Math.round(mem.rss / 1024 / 1024) },
+            uptimeSeconds: Math.floor(process.uptime()),
+            nodeVersion: process.version,
+            memory: { heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024), heapTotalMb: Math.round(mem.heapTotal / 1024 / 1024), rssMb: Math.round(mem.rss / 1024 / 1024) },
           },
         },
       },

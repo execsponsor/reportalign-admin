@@ -7,6 +7,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
 import { checkRateLimit } from '../middleware/rateLimit.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -45,9 +46,9 @@ async function getOrganizationDefaults(req: HttpRequest, context: InvocationCont
         success: true,
         data: {
           defaults,
-          updated_at: updatedAt,
-          updated_by: updatedBy,
-          is_from_database: result.rows.length > 0,
+          updatedAt,
+          updatedBy,
+          isFromDatabase: result.rows.length > 0,
         },
       },
     };
