@@ -5,7 +5,9 @@
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
+import { checkRateLimit } from '../middleware/rateLimit.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 const VALID_TEMPLATE_KEYS = ['improve', 'expand', 'summarize', 'formalize', 'executive_summary', 'risk_analysis', 'status_narrative', 'recommendation', 'board_brief'];
 const VALID_TONES = ['formal', 'conversational', 'technical', 'executive'];
@@ -32,7 +34,7 @@ async function listAIPromptTemplates(req: HttpRequest, context: InvocationContex
 
     const templates = templatesResult.rows.map((t) => ({ ...t, override_count: overrideCounts[t.template_key] || 0 }));
 
-    return { status: 200, jsonBody: { success: true, data: { templates } } };
+    return { status: 200, jsonBody: { success: true, data: { templates: snakeToCamel(templates) } } };
   } catch (err) {
     context.error('listAIPromptTemplates error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -60,7 +62,7 @@ async function getAIPromptTemplate(req: HttpRequest, context: InvocationContext)
        WHERE apt.template_key = $1 AND apt.organization_id IS NOT NULL AND apt.is_default = false ORDER BY o.name`, [templateKey]
     );
 
-    return { status: 200, jsonBody: { success: true, data: { template: templateResult.rows[0], overrides: overridesResult.rows } } };
+    return { status: 200, jsonBody: { success: true, data: { template: snakeToCamel(templateResult.rows[0]), overrides: snakeToCamel(overridesResult.rows) } } };
   } catch (err) {
     context.error('getAIPromptTemplate error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -68,6 +70,9 @@ async function getAIPromptTemplate(req: HttpRequest, context: InvocationContext)
 }
 
 async function updateAIPromptTemplate(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
 
@@ -110,13 +115,13 @@ async function updateAIPromptTemplate(req: HttpRequest, context: InvocationConte
       `Updated system default template: ${templateKey}`
     );
 
-    return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
+    return { status: 200, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
   } catch (err) {
     context.error('updateAIPromptTemplate error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
   }
 }
 
-app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates', handler: listAIPromptTemplates });
-app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: getAIPromptTemplate });
-app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: updateAIPromptTemplate });
+app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'function', route: 'ai-prompt-templates', handler: listAIPromptTemplates });
+app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'function', route: 'ai-prompt-templates/{templateKey}', handler: getAIPromptTemplate });
+app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'function', route: 'ai-prompt-templates/{templateKey}', handler: updateAIPromptTemplate });

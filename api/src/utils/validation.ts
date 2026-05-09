@@ -66,10 +66,22 @@ export const auditLogFilterSchema = z.object({
   toDate: z.string().optional(),
 });
 
-// Subscription tier limits
+// Subscription tier limits — override via env vars (e.g. STANDARD_MAX_USERS=10)
 export const SUBSCRIPTION_LIMITS: Record<string, { maxUsers: number; maxProgrammes: number }> = {
-  standard: { maxUsers: 10, maxProgrammes: 20 },
-  pro: { maxUsers: 50, maxProgrammes: 100 },
-  max: { maxUsers: 999, maxProgrammes: 999 },
-  beta_customer: { maxUsers: 50, maxProgrammes: 100 },
+  standard: {
+    maxUsers: parseInt(process.env.STANDARD_MAX_USERS || '10'),
+    maxProgrammes: parseInt(process.env.STANDARD_MAX_PROGRAMMES || '20'),
+  },
+  pro: {
+    maxUsers: parseInt(process.env.PRO_MAX_USERS || '50'),
+    maxProgrammes: parseInt(process.env.PRO_MAX_PROGRAMMES || '100'),
+  },
+  max: {
+    maxUsers: parseInt(process.env.MAX_MAX_USERS || '999'),
+    maxProgrammes: parseInt(process.env.MAX_MAX_PROGRAMMES || '999'),
+  },
+  beta_customer: {
+    maxUsers: parseInt(process.env.BETA_MAX_USERS || '50'),
+    maxProgrammes: parseInt(process.env.BETA_MAX_PROGRAMMES || '100'),
+  },
 };

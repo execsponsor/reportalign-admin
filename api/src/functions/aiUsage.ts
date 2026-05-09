@@ -6,6 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 async function getAIUsageSummary(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -34,6 +35,7 @@ async function getAIUsageSummary(req: HttpRequest, context: InvocationContext): 
     ]);
 
     const row = totals.rows[0];
+    const splitRow = providerSplit.rows[0];
 
     return {
       status: 200,
@@ -41,18 +43,18 @@ async function getAIUsageSummary(req: HttpRequest, context: InvocationContext): 
         success: true,
         data: {
           totals: {
-            total_requests: parseInt(row.total_requests),
-            total_input_tokens: parseInt(row.total_input_tokens),
-            total_output_tokens: parseInt(row.total_output_tokens),
-            total_tokens: parseInt(row.total_tokens),
-            total_cost_usd: parseFloat(row.total_cost_usd),
-            avg_latency_ms: Math.round(parseFloat(row.avg_latency_ms)),
+            totalRequests: parseInt(row?.total_requests ?? '0'),
+            totalInputTokens: parseInt(row?.total_input_tokens ?? '0'),
+            totalOutputTokens: parseInt(row?.total_output_tokens ?? '0'),
+            totalTokens: parseInt(row?.total_tokens ?? '0'),
+            totalCostUsd: parseFloat(row?.total_cost_usd ?? '0'),
+            avgLatencyMs: Math.round(parseFloat(row?.avg_latency_ms ?? '0')),
           },
-          by_org: byOrg.rows,
-          by_operation: byOperation.rows,
-          by_provider: byProvider.rows,
-          daily_usage: dailyUsage.rows,
-          provider_split: { platform_default: parseInt(providerSplit.rows[0].platform_default), byoai: parseInt(providerSplit.rows[0].byoai) },
+          byOrg: snakeToCamel(byOrg.rows),
+          byOperation: snakeToCamel(byOperation.rows),
+          byProvider: snakeToCamel(byProvider.rows),
+          dailyUsage: snakeToCamel(dailyUsage.rows),
+          providerSplit: { platformDefault: parseInt(splitRow?.platform_default ?? '0'), byoai: parseInt(splitRow?.byoai ?? '0') },
         },
       },
     };
@@ -62,4 +64,4 @@ async function getAIUsageSummary(req: HttpRequest, context: InvocationContext): 
   }
 }
 
-app.http('getAIUsageSummary', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-usage/summary', handler: getAIUsageSummary });
+app.http('getAIUsageSummary', { methods: ['GET'], authLevel: 'function', route: 'ai-usage/summary', handler: getAIUsageSummary });

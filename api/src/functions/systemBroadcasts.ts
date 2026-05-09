@@ -4,7 +4,9 @@
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
+import { checkRateLimit } from '../middleware/rateLimit.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 import { v4 as uuidv4 } from 'uuid';
 
 async function listBroadcasts(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -22,7 +24,7 @@ async function listBroadcasts(req: HttpRequest, context: InvocationContext): Pro
       `SELECT sb.id, sb.title, sb.message, sb.link_url, sb.link_text, sb.broadcast_type, sb.target_organization_ids, sb.starts_at, sb.ends_at, sb.is_active, sb.show_on_auth_pages, sb.show_on_app, sb.total_impressions, sb.total_clicks, sb.created_by, sb.created_at, sb.updated_at, u.email as created_by_email
        FROM system_broadcasts sb LEFT JOIN users u ON sb.created_by = u.id ${whereClause} ORDER BY sb.created_at DESC LIMIT 50`
     );
-    return { status: 200, jsonBody: { success: true, data: { broadcasts: result.rows } } };
+    return { status: 200, jsonBody: { success: true, data: { broadcasts: snakeToCamel(result.rows) } } };
   } catch (err) {
     context.error('listBroadcasts error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -30,6 +32,9 @@ async function listBroadcasts(req: HttpRequest, context: InvocationContext): Pro
 }
 
 async function createBroadcast(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
   try {
@@ -45,7 +50,7 @@ async function createBroadcast(req: HttpRequest, context: InvocationContext): Pr
       [id, body.title, body.message, body.link_url || null, body.link_text || null, body.broadcast_type, body.target_organization_ids || null, body.starts_at || null, body.ends_at || null, body.is_active !== false, body.show_on_auth_pages || false, body.show_on_app !== false, auth.userId]
     );
     await logAuditAction(auth.superAdminId!, 'CREATE_BROADCAST', 'system_broadcast', id, null, { title: body.title, type: body.broadcast_type }, `Created ${body.broadcast_type} broadcast: ${body.title}`);
-    return { status: 201, jsonBody: { success: true, data: result.rows[0] } };
+    return { status: 201, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
   } catch (err) {
     context.error('createBroadcast error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -53,6 +58,9 @@ async function createBroadcast(req: HttpRequest, context: InvocationContext): Pr
 }
 
 async function updateBroadcast(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
   try {
@@ -68,7 +76,7 @@ async function updateBroadcast(req: HttpRequest, context: InvocationContext): Pr
     const result = await pool.query(`UPDATE system_broadcasts SET ${updates.join(', ')} WHERE id = $${paramIdx} RETURNING *`, [...params, broadcastId]);
     if (result.rows.length === 0) return { status: 404, jsonBody: { success: false, error: 'Broadcast not found' } };
     await logAuditAction(auth.superAdminId!, 'UPDATE_BROADCAST', 'system_broadcast', broadcastId, null, { is_active: body.is_active }, `Updated broadcast: ${result.rows[0].title}`);
-    return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
+    return { status: 200, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
   } catch (err) {
     context.error('updateBroadcast error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -84,7 +92,7 @@ async function listMaintenanceWindows(req: HttpRequest, context: InvocationConte
       `SELECT mw.id, mw.title, mw.description, mw.reason, mw.scheduled_start, mw.scheduled_end, mw.actual_start, mw.actual_end, mw.status, mw.created_by, mw.created_at, mw.updated_at, u.email as created_by_email
        FROM maintenance_windows mw LEFT JOIN users u ON mw.created_by = u.id ORDER BY mw.scheduled_start DESC LIMIT 30`
     );
-    return { status: 200, jsonBody: { success: true, data: { windows: result.rows } } };
+    return { status: 200, jsonBody: { success: true, data: { windows: snakeToCamel(result.rows) } } };
   } catch (err) {
     context.error('listMaintenanceWindows error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -92,6 +100,9 @@ async function listMaintenanceWindows(req: HttpRequest, context: InvocationConte
 }
 
 async function createMaintenanceWindow(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
   try {
@@ -107,7 +118,7 @@ async function createMaintenanceWindow(req: HttpRequest, context: InvocationCont
       [id, body.title, body.description || null, reason, body.scheduled_start, body.scheduled_end, auth.userId]
     );
     await logAuditAction(auth.superAdminId!, 'CREATE_MAINTENANCE_WINDOW', 'maintenance_window', id, null, { title: body.title, scheduled_start: body.scheduled_start }, `Scheduled maintenance: ${body.title}`);
-    return { status: 201, jsonBody: { success: true, data: result.rows[0] } };
+    return { status: 201, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
   } catch (err) {
     context.error('createMaintenanceWindow error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -115,6 +126,9 @@ async function createMaintenanceWindow(req: HttpRequest, context: InvocationCont
 }
 
 async function updateMaintenanceWindow(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
   try {
@@ -130,16 +144,16 @@ async function updateMaintenanceWindow(req: HttpRequest, context: InvocationCont
     const result = await pool.query(`UPDATE maintenance_windows SET ${updates.join(', ')} WHERE id = $${paramIdx} RETURNING *`, [...params, windowId]);
     if (result.rows.length === 0) return { status: 404, jsonBody: { success: false, error: 'Maintenance window not found' } };
     await logAuditAction(auth.superAdminId!, 'UPDATE_MAINTENANCE_WINDOW', 'maintenance_window', windowId, null, { status: body.status }, `Updated maintenance window: ${result.rows[0].title}`);
-    return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
+    return { status: 200, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
   } catch (err) {
     context.error('updateMaintenanceWindow error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
   }
 }
 
-app.http('listBroadcasts', { methods: ['GET'], authLevel: 'anonymous', route: 'broadcasts', handler: listBroadcasts });
-app.http('createBroadcast', { methods: ['POST'], authLevel: 'anonymous', route: 'broadcasts', handler: createBroadcast });
-app.http('updateBroadcast', { methods: ['PATCH'], authLevel: 'anonymous', route: 'broadcasts/{id}', handler: updateBroadcast });
-app.http('listMaintenanceWindows', { methods: ['GET'], authLevel: 'anonymous', route: 'maintenance-windows', handler: listMaintenanceWindows });
-app.http('createMaintenanceWindow', { methods: ['POST'], authLevel: 'anonymous', route: 'maintenance-windows', handler: createMaintenanceWindow });
-app.http('updateMaintenanceWindow', { methods: ['PATCH'], authLevel: 'anonymous', route: 'maintenance-windows/{id}', handler: updateMaintenanceWindow });
+app.http('listBroadcasts', { methods: ['GET'], authLevel: 'function', route: 'broadcasts', handler: listBroadcasts });
+app.http('createBroadcast', { methods: ['POST'], authLevel: 'function', route: 'broadcasts', handler: createBroadcast });
+app.http('updateBroadcast', { methods: ['PATCH'], authLevel: 'function', route: 'broadcasts/{id}', handler: updateBroadcast });
+app.http('listMaintenanceWindows', { methods: ['GET'], authLevel: 'function', route: 'maintenance-windows', handler: listMaintenanceWindows });
+app.http('createMaintenanceWindow', { methods: ['POST'], authLevel: 'function', route: 'maintenance-windows', handler: createMaintenanceWindow });
+app.http('updateMaintenanceWindow', { methods: ['PATCH'], authLevel: 'function', route: 'maintenance-windows/{id}', handler: updateMaintenanceWindow });

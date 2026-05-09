@@ -6,6 +6,11 @@ import { Configuration, LogLevel, PublicClientApplication } from '@azure/msal-br
 
 const clientId = import.meta.env.VITE_ENTRA_CLIENT_ID;
 const authority = import.meta.env.VITE_ENTRA_AUTHORITY;
+const apiAppId = import.meta.env.VITE_ENTRA_API_APP_ID;
+
+if (!clientId || !authority || !apiAppId) {
+  throw new Error('Missing required Entra ID environment variables: VITE_ENTRA_CLIENT_ID, VITE_ENTRA_AUTHORITY, VITE_ENTRA_API_APP_ID');
+}
 
 export const msalConfig: Configuration = {
   auth: {
@@ -29,7 +34,7 @@ export const msalConfig: Configuration = {
 };
 
 export const loginRequest = {
-  scopes: ['api://cde2b783-c437-4758-9308-d9474e27bc39/access_as_admin'],
+  scopes: [`api://${apiAppId}/access_as_admin`],
   domainHint: 'organizations',
 };
 

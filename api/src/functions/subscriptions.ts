@@ -6,6 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 // ============================================================================
 // GET /api/subscriptions/overview — Subscription dashboard
@@ -73,11 +74,11 @@ async function getSubscriptionOverview(req: HttpRequest, context: InvocationCont
       jsonBody: {
         success: true,
         data: {
-          by_tier: byTier.rows,
-          by_status: byStatus.rows,
-          beta_customers: betaCustomers.rows,
-          approaching_limits: atLimit,
-          recent_orgs: recentOrgs.rows,
+          byTier: snakeToCamel(byTier.rows),
+          byStatus: snakeToCamel(byStatus.rows),
+          betaCustomers: snakeToCamel(betaCustomers.rows),
+          approachingLimits: snakeToCamel(atLimit),
+          recentOrgs: snakeToCamel(recentOrgs.rows),
         },
       },
     };
@@ -89,7 +90,7 @@ async function getSubscriptionOverview(req: HttpRequest, context: InvocationCont
 
 app.http('getSubscriptionOverview', {
   methods: ['GET'],
-  authLevel: 'anonymous',
+  authLevel: 'function',
   route: 'subscriptions/overview',
   handler: getSubscriptionOverview,
 });

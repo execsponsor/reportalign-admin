@@ -17,7 +17,10 @@ interface AuthResult {
   error?: string;
 }
 
-const API_APP_ID = process.env.ENTRA_API_APP_ID || 'cde2b783-c437-4758-9308-d9474e27bc39';
+const API_APP_ID = process.env.ENTRA_API_APP_ID;
+if (!API_APP_ID) {
+  throw new Error('ENTRA_API_APP_ID environment variable is required');
+}
 
 // JWKS for RS256 token verification
 const JWKS = createRemoteJWKSet(
@@ -63,7 +66,8 @@ export async function authenticateSuperAdmin(
     );
 
     if (result.rows.length === 0) {
-      context.warn(`Non-super-admin login attempt: ${email}`);
+      const redactedEmail = email.replace(/(.{2}).+(@.+)/, '$1***$2');
+      context.warn(`Non-super-admin login attempt: ${redactedEmail}`);
       return { authenticated: false, error: 'Not a super administrator' };
     }
 

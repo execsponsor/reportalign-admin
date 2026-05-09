@@ -6,6 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 async function getReportCompliance(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -57,14 +58,14 @@ async function getReportCompliance(req: HttpRequest, context: InvocationContext)
       jsonBody: {
         success: true,
         data: {
-          totals: totals.rows[0],
-          by_org: byOrg.rows,
-          monthly_volume: monthlyVolume.rows,
-          cycle_time: {
-            avg_hours: cycleTime.rows[0]?.avg_hours_to_approval ? Math.round(parseFloat(cycleTime.rows[0].avg_hours_to_approval)) : null,
-            median_hours: cycleTime.rows[0]?.median_hours ? Math.round(parseFloat(cycleTime.rows[0].median_hours)) : null,
+          totals: snakeToCamel(totals.rows[0]),
+          byOrg: snakeToCamel(byOrg.rows),
+          monthlyVolume: snakeToCamel(monthlyVolume.rows),
+          cycleTime: {
+            avgHours: cycleTime.rows[0]?.avg_hours_to_approval ? Math.round(parseFloat(cycleTime.rows[0].avg_hours_to_approval)) : null,
+            medianHours: cycleTime.rows[0]?.median_hours ? Math.round(parseFloat(cycleTime.rows[0].median_hours)) : null,
           },
-          stale_programmes: stale.rows,
+          staleProgrammes: snakeToCamel(stale.rows),
         },
       },
     };
@@ -74,4 +75,4 @@ async function getReportCompliance(req: HttpRequest, context: InvocationContext)
   }
 }
 
-app.http('getReportCompliance', { methods: ['GET'], authLevel: 'anonymous', route: 'report-compliance', handler: getReportCompliance });
+app.http('getReportCompliance', { methods: ['GET'], authLevel: 'function', route: 'report-compliance', handler: getReportCompliance });

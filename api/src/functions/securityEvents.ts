@@ -6,6 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 async function listSecurityEvents(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -50,7 +51,7 @@ async function listSecurityEvents(req: HttpRequest, context: InvocationContext):
       jsonBody: {
         success: true,
         data: {
-          events: eventsResult.rows,
+          events: snakeToCamel(eventsResult.rows),
           pagination: { page, limit, total: parseInt(countResult.rows[0].total), totalPages: Math.ceil(parseInt(countResult.rows[0].total) / limit) },
         },
       },
@@ -83,13 +84,13 @@ async function getSecuritySummary(req: HttpRequest, context: InvocationContext):
       jsonBody: {
         success: true,
         data: {
-          failed_logins_24h: parseInt(failed24h.rows[0].count),
-          lockouts_24h: parseInt(lockouts24h.rows[0].count),
-          by_severity_7d: bySeverity7d.rows,
-          by_type_7d: byType7d.rows,
-          top_ips_24h: topIps24h.rows,
-          top_emails_24h: topEmails24h.rows,
-          daily_counts_14d: dailyCounts.rows,
+          failedLogins24h: parseInt(failed24h.rows[0].count),
+          lockouts24h: parseInt(lockouts24h.rows[0].count),
+          bySeverity7d: snakeToCamel(bySeverity7d.rows),
+          byType7d: snakeToCamel(byType7d.rows),
+          topIps24h: snakeToCamel(topIps24h.rows),
+          topEmails24h: snakeToCamel(topEmails24h.rows),
+          dailyCounts14d: snakeToCamel(dailyCounts.rows),
         },
       },
     };
@@ -99,5 +100,5 @@ async function getSecuritySummary(req: HttpRequest, context: InvocationContext):
   }
 }
 
-app.http('listSecurityEvents', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events', handler: listSecurityEvents });
-app.http('getSecuritySummary', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events/summary', handler: getSecuritySummary });
+app.http('listSecurityEvents', { methods: ['GET'], authLevel: 'function', route: 'security-events', handler: listSecurityEvents });
+app.http('getSecuritySummary', { methods: ['GET'], authLevel: 'function', route: 'security-events/summary', handler: getSecuritySummary });

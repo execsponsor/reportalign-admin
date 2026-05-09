@@ -5,7 +5,46 @@
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
+import { checkRateLimit } from '../middleware/rateLimit.js';
 import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
+
+/** Shape of a contradiction rule row joined with its conditions */
+interface ContradictionRuleRow {
+  id: string;
+  rule_code: string;
+  name: string;
+  archetype: string;
+  pack: string;
+  rule_type: string;
+  presentation_description: string | null;
+  pm_challenge_text: string | null;
+  exec_challenge_text: string | null;
+  outcome_tags: string[] | null;
+  default_severity: string;
+  escalate_after_cycles: number | null;
+  escalate_to: string | null;
+  is_active: boolean;
+  is_mvp: boolean;
+  created_at: string;
+  updated_at: string;
+  override_count: number;
+  [key: string]: unknown; // rule_conditions columns
+}
+
+/** Request body for updating a contradiction rule */
+interface UpdateContradictionRuleBody {
+  pm_challenge_text?: string;
+  exec_challenge_text?: string;
+  presentation_description?: string;
+  default_severity?: string;
+  escalate_after_cycles?: number;
+  escalate_to?: string;
+  is_active?: boolean;
+  is_mvp?: boolean;
+  tunable_threshold_current?: number;
+  [key: string]: unknown;
+}
 
 // --- List all system default rules with conditions ---
 
@@ -52,7 +91,7 @@ async function listContradictionRules(req: HttpRequest, context: InvocationConte
       overrideCounts[row.rule_id] = row.override_count;
     }
 
-    const rules = rulesResult.rows.map((r: any) => ({
+    const rules: ContradictionRuleRow[] = rulesResult.rows.map((r: ContradictionRuleRow) => ({
       ...r,
       override_count: overrideCounts[r.id] || 0,
     }));
@@ -60,13 +99,13 @@ async function listContradictionRules(req: HttpRequest, context: InvocationConte
     // Summary stats
     const stats = {
       total: rules.length,
-      active: rules.filter((r: any) => r.is_active).length,
-      mvp: rules.filter((r: any) => r.is_mvp).length,
+      active: rules.filter((r) => r.is_active).length,
+      mvp: rules.filter((r) => r.is_mvp).length,
       by_pack: {
-        waterfall: rules.filter((r: any) => r.pack === 'waterfall').length,
-        agile: rules.filter((r: any) => r.pack === 'agile').length,
-        hybrid: rules.filter((r: any) => r.pack === 'hybrid').length,
-        pmo: rules.filter((r: any) => r.pack === 'pmo').length,
+        waterfall: rules.filter((r) => r.pack === 'waterfall').length,
+        agile: rules.filter((r) => r.pack === 'agile').length,
+        hybrid: rules.filter((r) => r.pack === 'hybrid').length,
+        pmo: rules.filter((r) => r.pack === 'pmo').length,
       },
       by_archetype: {} as Record<string, number>,
     };
@@ -74,7 +113,7 @@ async function listContradictionRules(req: HttpRequest, context: InvocationConte
       stats.by_archetype[r.archetype] = (stats.by_archetype[r.archetype] || 0) + 1;
     }
 
-    return { status: 200, jsonBody: { success: true, data: { rules, stats } } };
+    return { status: 200, jsonBody: { success: true, data: { rules: snakeToCamel(rules), stats: snakeToCamel(stats) } } };
   } catch (err) {
     context.error('listContradictionRules error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -84,13 +123,16 @@ async function listContradictionRules(req: HttpRequest, context: InvocationConte
 // --- Update a system default rule ---
 
 async function updateContradictionRule(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const rateLimited = checkRateLimit(req);
+  if (rateLimited) return rateLimited;
+
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) { return { status: 401, jsonBody: { error: auth.error } }; }
 
   try {
     const pool = getPool();
     const ruleId = req.params.ruleId;
-    const body = await req.json() as any;
+    const body = await req.json() as UpdateContradictionRuleBody;
 
     // Only allow updating specific fields
     const allowedFields = [
@@ -100,7 +142,7 @@ async function updateContradictionRule(req: HttpRequest, context: InvocationCont
     ];
 
     const setClauses: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIdx = 1;
 
     for (const field of allowedFields) {
@@ -130,7 +172,7 @@ async function updateContradictionRule(req: HttpRequest, context: InvocationCont
       );
     }
 
-    await logAuditAction(pool, auth.adminId!, 'contradiction_rule.updated', {
+    await logAuditAction(auth.superAdminId!, 'UPDATE_CONTRADICTION_RULE', 'contradiction_rule', ruleId, null, {
       rule_id: ruleId,
       fields_updated: Object.keys(body).filter(k => allowedFields.includes(k) || k === 'tunable_threshold_current'),
     });
@@ -146,14 +188,14 @@ async function updateContradictionRule(req: HttpRequest, context: InvocationCont
 
 app.http('listContradictionRules', {
   methods: ['GET'],
-  authLevel: 'anonymous',
+  authLevel: 'function',
   route: 'contradiction-rules',
   handler: listContradictionRules,
 });
 
 app.http('updateContradictionRule', {
   methods: ['PATCH'],
-  authLevel: 'anonymous',
+  authLevel: 'function',
   route: 'contradiction-rules/{ruleId}',
   handler: updateContradictionRule,
 });

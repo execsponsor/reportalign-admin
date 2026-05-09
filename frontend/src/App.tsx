@@ -15,6 +15,7 @@ import { SubscriptionsPage } from './pages/SubscriptionsPage';
 import { ReportCompliancePage } from './pages/ReportCompliancePage';
 import { OrganizationDefaultsPage } from './pages/OrganizationDefaultsPage';
 import { ContradictionRulesPage } from './pages/ContradictionRulesPage';
+import { NpsSurveysPage } from './pages/NpsSurveysPage';
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/subscriptions" element={<SubscriptionsPage />} />
         <Route path="/compliance" element={<ReportCompliancePage />} />
         <Route path="/health" element={<PlatformHealthPage />} />
+        <Route path="/nps-surveys" element={<NpsSurveysPage />} />
         <Route path="/audit-log" element={<AuditLogPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

@@ -16,6 +16,7 @@ import {
   Shield,
   LogOut,
   Gauge,
+  SmilePlus,
 } from 'lucide-react';
 
 const navItems = [
@@ -30,6 +31,7 @@ const navItems = [
   { path: '/subscriptions', label: 'Subscriptions', icon: CreditCard },
   { path: '/compliance', label: 'Compliance', icon: FileBarChart },
   { path: '/broadcasts', label: 'Broadcasts', icon: Megaphone },
+  { path: '/nps-surveys', label: 'NPS Surveys', icon: SmilePlus },
   { path: '/health', label: 'Health', icon: Heart },
   { path: '/audit-log', label: 'Audit Log', icon: ScrollText },
 ];
