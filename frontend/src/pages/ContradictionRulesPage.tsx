@@ -1,8 +1,11 @@
 /**
- * Contradiction Rules — Super Admin Page
+ * Contradiction Rules — Super Admin Page (DEPRECATED)
  *
- * View and edit the Predictive Assurance rule library.
- * Shows all 83 system default rules with conditions, prompts, and thresholds.
+ * Rule management has moved to the main platform (/Settings > Signal Detection Rules).
+ * Each org now owns its own copy of the rule library. This page is retained as
+ * read-only for super-admin oversight. Editing is disabled.
+ *
+ * @deprecated Use the per-org SignalDetectionRulesSettings component instead.
  */
 
 import { useState } from 'react';
