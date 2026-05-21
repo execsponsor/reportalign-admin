@@ -14,7 +14,7 @@ import { PlatformHealthPage } from './pages/PlatformHealthPage';
 import { SubscriptionsPage } from './pages/SubscriptionsPage';
 import { ReportCompliancePage } from './pages/ReportCompliancePage';
 import { OrganizationDefaultsPage } from './pages/OrganizationDefaultsPage';
-import { ContradictionRulesPage } from './pages/ContradictionRulesPage';
+import ContradictionRulesPage from './pages/ContradictionRulesPage';
 import { NpsSurveysPage } from './pages/NpsSurveysPage';
 
 export default function App() {
