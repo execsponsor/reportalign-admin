@@ -11,7 +11,7 @@ export function snakeToCamel(obj: unknown): unknown {
 
   const record = obj as Record<string, unknown>;
   return Object.keys(record).reduce<Record<string, unknown>>((acc, key) => {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+    const camelKey = key.replace(/_([a-z0-9])/g, (_, char: string) => char >= 'a' ? char.toUpperCase() : char);
     acc[camelKey] = snakeToCamel(record[key]);
     return acc;
   }, {});
