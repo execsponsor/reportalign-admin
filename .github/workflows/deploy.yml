@@ -30,4 +30,5 @@ jobs:
           VITE_ENTRA_CLIENT_ID: c303da83-4258-45fa-a7fc-8edd00e87c1f
           VITE_ENTRA_TENANT_ID: 968f235a-c65e-4e4c-b308-9dd27c1b5a30
           VITE_ENTRA_AUTHORITY: https://login.microsoftonline.com/968f235a-c65e-4e4c-b308-9dd27c1b5a30
+          VITE_ENTRA_API_APP_ID: cde2b783-c437-4758-9308-d9474e27bc39
           NODE_VERSION: '22'
