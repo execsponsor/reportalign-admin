@@ -19,7 +19,7 @@ async function listMasterRules(req: HttpRequest, context: InvocationContext): Pr
   const auth = await authenticateSuperAdmin(req, context);
   if (!auth.authenticated) { return { status: 401, jsonBody: { error: auth.error } }; }
 
-  const rateLimitResult = await checkRateLimit(req, context, 'rules-list');
+  const rateLimitResult = checkRateLimit(req);
   if (rateLimitResult) { return rateLimitResult; }
 
   try {
@@ -53,7 +53,7 @@ async function listMasterRules(req: HttpRequest, context: InvocationContext): Pr
 
     const rules = rulesResult.rows.map((r: Record<string, unknown>) => {
       const stats = statsMap.get(r.rule_code as string);
-      return { ...snakeToCamel(r), orgCount: stats?.orgCount || 0, disabledByOrgs: stats?.disabledCount || 0 };
+      return { ...(snakeToCamel(r) as Record<string, unknown>), orgCount: stats?.orgCount || 0, disabledByOrgs: stats?.disabledCount || 0 };
     });
 
     return { status: 200, jsonBody: { success: true, data: rules } };
@@ -93,7 +93,7 @@ async function createMasterRule(req: HttpRequest, context: InvocationContext): P
       ]
     );
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.created', `Created master rule ${body.ruleCode}`);
+    await logAuditAction(auth.superAdminId!, 'master_rule.created', 'contradiction_rule', result.rows[0].id, null, snakeToCamel(result.rows[0]) as Record<string, unknown>);
 
     return { status: 201, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
   } catch (error: unknown) {
@@ -140,7 +140,7 @@ async function updateMasterRule(req: HttpRequest, context: InvocationContext): P
       return { status: 404, jsonBody: { error: 'Master rule not found' } };
     }
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.updated', `Updated master rule ${result.rows[0].rule_code}`);
+    await logAuditAction(auth.superAdminId!, 'master_rule.updated', 'contradiction_rule', ruleId!, null, snakeToCamel(result.rows[0]) as Record<string, unknown>);
 
     return { status: 200, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
   } catch (error) {
@@ -167,7 +167,7 @@ async function deleteMasterRule(req: HttpRequest, context: InvocationContext): P
       return { status: 404, jsonBody: { error: 'Master rule not found' } };
     }
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.deleted', `Deleted master rule ${result.rows[0].rule_code}`);
+    await logAuditAction(auth.superAdminId!, 'master_rule.deleted', 'contradiction_rule', ruleId!, { ruleCode: result.rows[0].rule_code }, null);
 
     return { status: 200, jsonBody: { success: true, data: { deleted: true, ruleCode: result.rows[0].rule_code } } };
   } catch (error) {
@@ -214,7 +214,7 @@ async function pushRuleToOrgs(req: HttpRequest, context: InvocationContext): Pro
       ]
     );
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.pushed', `Pushed ${rule.rule_code} to ${result.rowCount} orgs`);
+    await logAuditAction(auth.superAdminId!, 'master_rule.pushed', 'contradiction_rule', ruleId!, null, { ruleCode: rule.rule_code, orgsUpdated: result.rowCount });
 
     return {
       status: 200,
