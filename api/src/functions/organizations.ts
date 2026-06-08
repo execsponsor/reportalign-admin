@@ -4,16 +4,16 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
-import { checkRateLimit } from '../middleware/rateLimit.js';
-import { getPool } from '../utils/database.js';
-import { generatePassword, hashPassword, hashEmail } from '../utils/crypto.js';
+import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
+import { checkRateLimit } from '../middleware/rateLimit';
+import { getPool } from '../utils/database';
+import { generatePassword, hashPassword, hashEmail } from '../utils/crypto';
 import {
   createOrganizationSchema,
   paginationSchema,
   SUBSCRIPTION_LIMITS,
-} from '../utils/validation.js';
-import { snakeToCamel } from '../utils/caseTransform.js';
+} from '../utils/validation';
+import { snakeToCamel } from '../utils/caseTransform';
 import { v4 as uuidv4 } from 'uuid';
 
 // ============================================================================
