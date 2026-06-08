@@ -4,10 +4,10 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
-import { checkRateLimit } from '../middleware/rateLimit.js';
-import { getPool } from '../utils/database.js';
-import { snakeToCamel } from '../utils/caseTransform.js';
+import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
+import { checkRateLimit } from '../middleware/rateLimit';
+import { getPool } from '../utils/database';
+import { snakeToCamel } from '../utils/caseTransform';
 
 const VALID_TEMPLATE_KEYS = ['improve', 'expand', 'summarize', 'formalize', 'executive_summary', 'risk_analysis', 'status_narrative', 'recommendation', 'board_brief'];
 const VALID_TONES = ['formal', 'conversational', 'technical', 'executive'];

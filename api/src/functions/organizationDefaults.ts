@@ -4,19 +4,14 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
-import { checkRateLimit } from '../middleware/rateLimit.js';
-import { getPool } from '../utils/database.js';
-import { snakeToCamel } from '../utils/caseTransform.js';
+import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
+import { checkRateLimit } from '../middleware/rateLimit';
+import { getPool } from '../utils/database';
+import { snakeToCamel } from '../utils/caseTransform';
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 
 const CONFIG_KEY = 'organization_defaults';
-
-// Load defaults from config file instead of hardcoding ~90 lines inline
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const HARDCODED_DEFAULTS = JSON.parse(
   readFileSync(join(__dirname, '..', 'config', 'organization-defaults.json'), 'utf-8')
 ) as Record<string, unknown>;

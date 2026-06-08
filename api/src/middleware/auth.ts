@@ -6,8 +6,9 @@
  */
 
 import { HttpRequest, InvocationContext } from '@azure/functions';
-import { jwtVerify, createRemoteJWKSet } from 'jose';
-import { getPool } from '../utils/database.js';
+import jwt from 'jsonwebtoken';
+import jwksClient from 'jwks-rsa';
+import { getPool } from '../utils/database';
 
 interface AuthResult {
   authenticated: boolean;
@@ -17,27 +18,41 @@ interface AuthResult {
   error?: string;
 }
 
-// Lazy-init: SWA function runtime may load modules before env vars are injected
-let _apiAppId: string | undefined;
-let _jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
+let _jwksClient: jwksClient.JwksClient | undefined;
 
-function getApiAppId(): string {
-  if (!_apiAppId) {
-    _apiAppId = process.env.ENTRA_API_APP_ID;
-    if (!_apiAppId) {
-      throw new Error('ENTRA_API_APP_ID environment variable is required');
-    }
+function getJwksClient(): jwksClient.JwksClient {
+  if (!_jwksClient) {
+    _jwksClient = jwksClient({
+      jwksUri: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/discovery/v2.0/keys`,
+      cache: true,
+      rateLimit: true,
+    });
   }
-  return _apiAppId;
+  return _jwksClient;
 }
 
-function getJWKS() {
-  if (!_jwks) {
-    _jwks = createRemoteJWKSet(
-      new URL(`https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/discovery/v2.0/keys`)
-    );
-  }
-  return _jwks;
+function getSigningKey(header: jwt.JwtHeader): Promise<string> {
+  return new Promise((resolve, reject) => {
+    getJwksClient().getSigningKey(header.kid, (err, key) => {
+      if (err) { return reject(err); }
+      resolve(key!.getPublicKey());
+    });
+  });
+}
+
+function verifyToken(token: string): Promise<jwt.JwtPayload> {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, (header, callback) => {
+      getSigningKey(header).then(key => callback(null, key)).catch(err => callback(err));
+    }, {
+      audience: process.env.ENTRA_API_APP_ID,
+      issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
+      algorithms: ['RS256'],
+    }, (err, decoded) => {
+      if (err) { return reject(err); }
+      resolve(decoded as jwt.JwtPayload);
+    });
+  });
 }
 
 /**
@@ -56,10 +71,7 @@ export async function authenticateSuperAdmin(
 
   try {
     // Verify RS256 token using Entra ID JWKS
-    const { payload } = await jwtVerify(token, getJWKS(), {
-      audience: getApiAppId(),
-      issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
-    });
+    const payload = await verifyToken(token);
 
     const email = ((payload.preferred_username || payload.email || payload.upn) as string || '').toLowerCase();
 
