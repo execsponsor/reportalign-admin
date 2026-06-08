@@ -75,4 +75,4 @@ async function getReportCompliance(req: HttpRequest, context: InvocationContext)
   }
 }
 
-app.http('getReportCompliance', { methods: ['GET'], authLevel: 'anonymous', route: 'report-compliance', handler: getReportCompliance });
+app.http('getReportCompliance', { methods: ['GET'], authLevel: 'function', route: 'report-compliance', handler: getReportCompliance });

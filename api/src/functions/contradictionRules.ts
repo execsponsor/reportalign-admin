@@ -259,9 +259,9 @@ async function getRuleStats(req: HttpRequest, context: InvocationContext): Promi
 
 // --- Register Azure Functions ---
 
-app.http('listMasterRules', { methods: ['GET'], authLevel: 'anonymous', route: 'signal-detection-rules', handler: listMasterRules });
-app.http('createMasterRule', { methods: ['POST'], authLevel: 'anonymous', route: 'signal-detection-rules', handler: createMasterRule });
-app.http('updateMasterRule', { methods: ['PATCH'], authLevel: 'anonymous', route: 'signal-detection-rules/{ruleId}', handler: updateMasterRule });
-app.http('deleteMasterRule', { methods: ['DELETE'], authLevel: 'anonymous', route: 'signal-detection-rules/{ruleId}', handler: deleteMasterRule });
-app.http('pushRuleToOrgs', { methods: ['POST'], authLevel: 'anonymous', route: 'signal-detection-rules/{ruleId}/push', handler: pushRuleToOrgs });
-app.http('getRuleStats', { methods: ['GET'], authLevel: 'anonymous', route: 'signal-detection-rules/stats', handler: getRuleStats });
+app.http('listMasterRules', { methods: ['GET'], authLevel: 'function', route: 'signal-detection-rules', handler: listMasterRules });
+app.http('createMasterRule', { methods: ['POST'], authLevel: 'function', route: 'signal-detection-rules', handler: createMasterRule });
+app.http('updateMasterRule', { methods: ['PATCH'], authLevel: 'function', route: 'signal-detection-rules/{ruleId}', handler: updateMasterRule });
+app.http('deleteMasterRule', { methods: ['DELETE'], authLevel: 'function', route: 'signal-detection-rules/{ruleId}', handler: deleteMasterRule });
+app.http('pushRuleToOrgs', { methods: ['POST'], authLevel: 'function', route: 'signal-detection-rules/{ruleId}/push', handler: pushRuleToOrgs });
+app.http('getRuleStats', { methods: ['GET'], authLevel: 'function', route: 'signal-detection-rules/stats', handler: getRuleStats });

@@ -90,7 +90,7 @@ async function getAuditLog(req: HttpRequest, context: InvocationContext): Promis
 
 app.http('getAuditLog', {
   methods: ['GET'],
-  authLevel: 'anonymous',
+  authLevel: 'function',
   route: 'audit-log',
   handler: getAuditLog,
 });

@@ -122,6 +122,6 @@ async function updateAIPromptTemplate(req: HttpRequest, context: InvocationConte
   }
 }
 
-app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates', handler: listAIPromptTemplates });
-app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: getAIPromptTemplate });
-app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: updateAIPromptTemplate });
+app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'function', route: 'ai-prompt-templates', handler: listAIPromptTemplates });
+app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'function', route: 'ai-prompt-templates/{templateKey}', handler: getAIPromptTemplate });
+app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'function', route: 'ai-prompt-templates/{templateKey}', handler: updateAIPromptTemplate });

@@ -431,7 +431,7 @@ async function updateOrganization(req: HttpRequest, context: InvocationContext):
 // Register routes
 // ============================================================================
 
-app.http('listOrganizations', { methods: ['GET'], authLevel: 'anonymous', route: 'organizations', handler: listOrganizations });
-app.http('getOrganization', { methods: ['GET'], authLevel: 'anonymous', route: 'organizations/{id}', handler: getOrganization });
-app.http('createOrganization', { methods: ['POST'], authLevel: 'anonymous', route: 'organizations', handler: createOrganization });
-app.http('updateOrganization', { methods: ['PATCH'], authLevel: 'anonymous', route: 'organizations/{id}', handler: updateOrganization });
+app.http('listOrganizations', { methods: ['GET'], authLevel: 'function', route: 'organizations', handler: listOrganizations });
+app.http('getOrganization', { methods: ['GET'], authLevel: 'function', route: 'organizations/{id}', handler: getOrganization });
+app.http('createOrganization', { methods: ['POST'], authLevel: 'function', route: 'organizations', handler: createOrganization });
+app.http('updateOrganization', { methods: ['PATCH'], authLevel: 'function', route: 'organizations/{id}', handler: updateOrganization });
