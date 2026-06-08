@@ -10,7 +10,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
 import { checkRateLimit } from '../middleware/rateLimit';
 import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+
 
 const MASTER_ORG_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -53,7 +53,7 @@ async function listMasterRules(req: HttpRequest, context: InvocationContext): Pr
 
     const rules = rulesResult.rows.map((r: Record<string, unknown>) => {
       const stats = statsMap.get(r.rule_code as string);
-      return { ...(snakeToCamel(r) as Record<string, unknown>), orgCount: stats?.orgCount || 0, disabledByOrgs: stats?.disabledCount || 0 };
+      return { ...(r as Record<string, unknown>), orgCount: stats?.orgCount || 0, disabledByOrgs: stats?.disabledCount || 0 };
     });
 
     return { status: 200, jsonBody: { success: true, data: rules } };
@@ -93,9 +93,9 @@ async function createMasterRule(req: HttpRequest, context: InvocationContext): P
       ]
     );
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.created', 'contradiction_rule', result.rows[0].id, null, snakeToCamel(result.rows[0]) as Record<string, unknown>);
+    await logAuditAction(auth.superAdminId!, 'master_rule.created', 'contradiction_rule', result.rows[0].id, null, result.rows[0] as Record<string, unknown>);
 
-    return { status: 201, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
+    return { status: 201, jsonBody: { success: true, data: result.rows[0] } };
   } catch (error: unknown) {
     const msg = (error as Error).message || '';
     if (msg.includes('uq_contradiction_rules_org_code')) {
@@ -140,9 +140,9 @@ async function updateMasterRule(req: HttpRequest, context: InvocationContext): P
       return { status: 404, jsonBody: { error: 'Master rule not found' } };
     }
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.updated', 'contradiction_rule', ruleId!, null, snakeToCamel(result.rows[0]) as Record<string, unknown>);
+    await logAuditAction(auth.superAdminId!, 'master_rule.updated', 'contradiction_rule', ruleId!, null, result.rows[0] as Record<string, unknown>);
 
-    return { status: 200, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
+    return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
   } catch (error) {
     context.error('Error updating master rule:', error);
     return { status: 500, jsonBody: { error: 'Failed to update rule' } };
@@ -247,7 +247,7 @@ async function getRuleStats(req: HttpRequest, context: InvocationContext): Promi
         success: true,
         data: {
           totalOrganizations: parseInt(totalOrgs.rows[0].count),
-          byType: stats.rows.map((r: Record<string, unknown>) => snakeToCamel(r)),
+          byType: stats.rows.map((r: Record<string, unknown>) => r),
         },
       },
     };

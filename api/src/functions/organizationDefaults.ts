@@ -7,7 +7,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
 import { checkRateLimit } from '../middleware/rateLimit';
 import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+
 import { readFileSync } from 'fs';
 import { join } from 'path';
 

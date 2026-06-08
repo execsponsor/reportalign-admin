@@ -8,7 +8,7 @@ import { checkRateLimit } from '../middleware/rateLimit';
 import { getPool } from '../utils/database';
 import { generatePassword, hashPassword, hashEmail } from '../utils/crypto';
 import { createUserSchema, paginationSchema } from '../utils/validation';
-import { snakeToCamel } from '../utils/caseTransform';
+
 import { v4 as uuidv4 } from 'uuid';
 
 // GET /api/users — List all users
@@ -50,7 +50,7 @@ async function listUsers(req: HttpRequest, context: InvocationContext): Promise<
     jsonBody: {
       success: true,
       data: {
-        users: snakeToCamel(usersResult.rows),
+        users: usersResult.rows,
         pagination: {
           page: params.page,
           limit: params.limit,
@@ -100,11 +100,11 @@ async function getUser(req: HttpRequest, context: InvocationContext): Promise<Ht
       status: 200,
       jsonBody: {
         success: true,
-        data: snakeToCamel({
+        data: {
           ...user,
           organizations: orgsResult.rows,
           programmes: programmesResult.rows,
-        }),
+        },
       },
     };
   } catch (err) {

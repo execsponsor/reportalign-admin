@@ -6,7 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+
 
 async function listSecurityEvents(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -51,7 +51,7 @@ async function listSecurityEvents(req: HttpRequest, context: InvocationContext):
       jsonBody: {
         success: true,
         data: {
-          events: snakeToCamel(eventsResult.rows),
+          events: eventsResult.rows,
           pagination: { page, limit, total: parseInt(countResult.rows[0].total), totalPages: Math.ceil(parseInt(countResult.rows[0].total) / limit) },
         },
       },
@@ -86,11 +86,11 @@ async function getSecuritySummary(req: HttpRequest, context: InvocationContext):
         data: {
           failedLogins24h: parseInt(failed24h.rows[0].count),
           lockouts24h: parseInt(lockouts24h.rows[0].count),
-          bySeverity7d: snakeToCamel(bySeverity7d.rows),
-          byType7d: snakeToCamel(byType7d.rows),
-          topIps24h: snakeToCamel(topIps24h.rows),
-          topEmails24h: snakeToCamel(topEmails24h.rows),
-          dailyCounts14d: snakeToCamel(dailyCounts.rows),
+          bySeverity7d: bySeverity7d.rows,
+          byType7d: byType7d.rows,
+          topIps24h: topIps24h.rows,
+          topEmails24h: topEmails24h.rows,
+          dailyCounts14d: dailyCounts.rows,
         },
       },
     };

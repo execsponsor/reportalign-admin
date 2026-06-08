@@ -7,7 +7,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
 import { checkRateLimit } from '../middleware/rateLimit';
 import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+
 
 const VALID_TEMPLATE_KEYS = ['improve', 'expand', 'summarize', 'formalize', 'executive_summary', 'risk_analysis', 'status_narrative', 'recommendation', 'board_brief'];
 const VALID_TONES = ['formal', 'conversational', 'technical', 'executive'];
@@ -34,7 +34,7 @@ async function listAIPromptTemplates(req: HttpRequest, context: InvocationContex
 
     const templates = templatesResult.rows.map((t) => ({ ...t, override_count: overrideCounts[t.template_key] || 0 }));
 
-    return { status: 200, jsonBody: { success: true, data: { templates: snakeToCamel(templates) } } };
+    return { status: 200, jsonBody: { success: true, data: { templates: templates } } };
   } catch (err) {
     context.error('listAIPromptTemplates error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -62,7 +62,7 @@ async function getAIPromptTemplate(req: HttpRequest, context: InvocationContext)
        WHERE apt.template_key = $1 AND apt.organization_id IS NOT NULL AND apt.is_default = false ORDER BY o.name`, [templateKey]
     );
 
-    return { status: 200, jsonBody: { success: true, data: { template: snakeToCamel(templateResult.rows[0]), overrides: snakeToCamel(overridesResult.rows) } } };
+    return { status: 200, jsonBody: { success: true, data: { template: templateResult.rows[0], overrides: overridesResult.rows } } };
   } catch (err) {
     context.error('getAIPromptTemplate error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -115,7 +115,7 @@ async function updateAIPromptTemplate(req: HttpRequest, context: InvocationConte
       `Updated system default template: ${templateKey}`
     );
 
-    return { status: 200, jsonBody: { success: true, data: snakeToCamel(result.rows[0]) } };
+    return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
   } catch (err) {
     context.error('updateAIPromptTemplate error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
