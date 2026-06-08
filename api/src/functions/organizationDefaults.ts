@@ -4,16 +4,19 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
-import { checkRateLimit } from '../middleware/rateLimit';
-import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
+import { checkRateLimit } from '../middleware/rateLimit.js';
+import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const CONFIG_KEY = 'organization_defaults';
 
 // Load defaults from config file instead of hardcoding ~90 lines inline
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const HARDCODED_DEFAULTS = JSON.parse(
   readFileSync(join(__dirname, '..', 'config', 'organization-defaults.json'), 'utf-8')
 ) as Record<string, unknown>;
@@ -124,5 +127,5 @@ async function updateOrganizationDefaults(req: HttpRequest, context: InvocationC
 // Register routes
 // ============================================================================
 
-app.http('getOrganizationDefaults', { methods: ['GET'], authLevel: 'function', route: 'organization-defaults', handler: getOrganizationDefaults });
-app.http('updateOrganizationDefaults', { methods: ['PUT'], authLevel: 'function', route: 'organization-defaults', handler: updateOrganizationDefaults });
+app.http('getOrganizationDefaults', { methods: ['GET'], authLevel: 'anonymous', route: 'organization-defaults', handler: getOrganizationDefaults });
+app.http('updateOrganizationDefaults', { methods: ['PUT'], authLevel: 'anonymous', route: 'organization-defaults', handler: updateOrganizationDefaults });

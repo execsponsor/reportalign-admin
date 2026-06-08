@@ -4,9 +4,9 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
-import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+import { authenticateSuperAdmin } from '../middleware/auth.js';
+import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 async function listSecurityEvents(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -100,5 +100,5 @@ async function getSecuritySummary(req: HttpRequest, context: InvocationContext):
   }
 }
 
-app.http('listSecurityEvents', { methods: ['GET'], authLevel: 'function', route: 'security-events', handler: listSecurityEvents });
-app.http('getSecuritySummary', { methods: ['GET'], authLevel: 'function', route: 'security-events/summary', handler: getSecuritySummary });
+app.http('listSecurityEvents', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events', handler: listSecurityEvents });
+app.http('getSecuritySummary', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events/summary', handler: getSecuritySummary });
