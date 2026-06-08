@@ -6,7 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+
 
 // ============================================================================
 // GET /api/nps-surveys — Platform-wide NPS summary by org
@@ -137,7 +137,7 @@ async function listNpsSurveys(req: HttpRequest, context: InvocationContext): Pro
           },
           byOrg,
           trend,
-          latestFeedback: snakeToCamel(feedbackResult.rows),
+          latestFeedback: feedbackResult.rows,
         },
       },
     };
@@ -234,7 +234,7 @@ async function getOrgNpsSurveys(req: HttpRequest, context: InvocationContext): P
       jsonBody: {
         success: true,
         data: {
-          organization: snakeToCamel(orgResult.rows[0]),
+          organization: orgResult.rows[0],
           stats: {
             totalResponses,
             avgScore: Math.round(parseFloat(stats.avg_score) * 10) / 10,
@@ -244,7 +244,7 @@ async function getOrgNpsSurveys(req: HttpRequest, context: InvocationContext): P
             detractors,
           },
           trend,
-          responses: snakeToCamel(responsesResult.rows),
+          responses: responsesResult.rows,
         },
       },
     };

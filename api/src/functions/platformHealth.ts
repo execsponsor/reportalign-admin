@@ -6,7 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+
 
 async function getPlatformHealth(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -42,11 +42,11 @@ async function getPlatformHealth(req: HttpRequest, context: InvocationContext): 
             serverTime: dbCheck.rows[0].server_time,
             size: dbSize.rows[0].size_pretty,
             sizeBytes: parseInt(dbSize.rows[0].size_bytes),
-            connections: snakeToCamel(activeConnections.rows[0]),
+            connections: activeConnections.rows[0],
             pool: poolStats,
           },
-          tableSizes: snakeToCamel(tableSizes.rows),
-          platform: snakeToCamel({ ...platformCounts.rows[0], ...recentActivity.rows[0] }),
+          tableSizes: tableSizes.rows,
+          platform: { ...platformCounts.rows[0], ...recentActivity.rows[0] },
           process: {
             uptimeSeconds: Math.floor(process.uptime()),
             nodeVersion: process.version,

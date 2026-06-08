@@ -6,7 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+
 
 async function getAIUsageSummary(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -50,10 +50,10 @@ async function getAIUsageSummary(req: HttpRequest, context: InvocationContext): 
             totalCostUsd: parseFloat(row?.total_cost_usd ?? '0'),
             avgLatencyMs: Math.round(parseFloat(row?.avg_latency_ms ?? '0')),
           },
-          byOrg: snakeToCamel(byOrg.rows),
-          byOperation: snakeToCamel(byOperation.rows),
-          byProvider: snakeToCamel(byProvider.rows),
-          dailyUsage: snakeToCamel(dailyUsage.rows),
+          byOrg: byOrg.rows,
+          byOperation: byOperation.rows,
+          byProvider: byProvider.rows,
+          dailyUsage: dailyUsage.rows,
           providerSplit: { platformDefault: parseInt(splitRow?.platform_default ?? '0'), byoai: parseInt(splitRow?.byoai ?? '0') },
         },
       },

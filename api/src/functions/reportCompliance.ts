@@ -6,7 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+
 
 async function getReportCompliance(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -58,14 +58,14 @@ async function getReportCompliance(req: HttpRequest, context: InvocationContext)
       jsonBody: {
         success: true,
         data: {
-          totals: snakeToCamel(totals.rows[0]),
-          byOrg: snakeToCamel(byOrg.rows),
-          monthlyVolume: snakeToCamel(monthlyVolume.rows),
+          totals: totals.rows[0],
+          byOrg: byOrg.rows,
+          monthlyVolume: monthlyVolume.rows,
           cycleTime: {
             avgHours: cycleTime.rows[0]?.avg_hours_to_approval ? Math.round(parseFloat(cycleTime.rows[0].avg_hours_to_approval)) : null,
             medianHours: cycleTime.rows[0]?.median_hours ? Math.round(parseFloat(cycleTime.rows[0].median_hours)) : null,
           },
-          staleProgrammes: snakeToCamel(stale.rows),
+          staleProgrammes: stale.rows,
         },
       },
     };

@@ -7,7 +7,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { authenticateSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 import { auditLogFilterSchema } from '../utils/validation';
-import { snakeToCamel } from '../utils/caseTransform';
+
 
 async function getAuditLog(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -72,7 +72,7 @@ async function getAuditLog(req: HttpRequest, context: InvocationContext): Promis
       jsonBody: {
         success: true,
         data: {
-          entries: snakeToCamel(logResult.rows),
+          entries: logResult.rows,
           pagination: {
             page: filters.page,
             limit: filters.limit,

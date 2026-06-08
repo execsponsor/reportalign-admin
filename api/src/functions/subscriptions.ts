@@ -6,7 +6,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { authenticateSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+
 
 // ============================================================================
 // GET /api/subscriptions/overview — Subscription dashboard
@@ -74,11 +74,11 @@ async function getSubscriptionOverview(req: HttpRequest, context: InvocationCont
       jsonBody: {
         success: true,
         data: {
-          byTier: snakeToCamel(byTier.rows),
-          byStatus: snakeToCamel(byStatus.rows),
-          betaCustomers: snakeToCamel(betaCustomers.rows),
-          approachingLimits: snakeToCamel(atLimit),
-          recentOrgs: snakeToCamel(recentOrgs.rows),
+          byTier: byTier.rows,
+          byStatus: byStatus.rows,
+          betaCustomers: betaCustomers.rows,
+          approachingLimits: atLimit,
+          recentOrgs: recentOrgs.rows,
         },
       },
     };

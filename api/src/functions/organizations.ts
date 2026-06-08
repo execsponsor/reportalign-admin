@@ -13,7 +13,7 @@ import {
   paginationSchema,
   SUBSCRIPTION_LIMITS,
 } from '../utils/validation';
-import { snakeToCamel } from '../utils/caseTransform';
+
 import { v4 as uuidv4 } from 'uuid';
 
 // ============================================================================
@@ -70,7 +70,7 @@ async function listOrganizations(req: HttpRequest, context: InvocationContext): 
       jsonBody: {
         success: true,
         data: {
-          organizations: snakeToCamel(orgsResult.rows),
+          organizations: orgsResult.rows,
           pagination: {
             page: params.page,
             limit: params.limit,
@@ -118,7 +118,7 @@ async function getOrganization(req: HttpRequest, context: InvocationContext): Pr
       return { status: 404, jsonBody: { success: false, error: 'Organization not found' } };
     }
 
-    return { status: 200, jsonBody: { success: true, data: snakeToCamel(orgResult.rows[0]) } };
+    return { status: 200, jsonBody: { success: true, data: orgResult.rows[0] } };
   } catch (err) {
     context.error('getOrganization error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
