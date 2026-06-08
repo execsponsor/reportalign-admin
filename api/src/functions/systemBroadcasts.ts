@@ -3,10 +3,10 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
-import { checkRateLimit } from '../middleware/rateLimit.js';
-import { getPool } from '../utils/database.js';
-import { snakeToCamel } from '../utils/caseTransform.js';
+import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
+import { checkRateLimit } from '../middleware/rateLimit';
+import { getPool } from '../utils/database';
+import { snakeToCamel } from '../utils/caseTransform';
 import { v4 as uuidv4 } from 'uuid';
 
 async function listBroadcasts(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
