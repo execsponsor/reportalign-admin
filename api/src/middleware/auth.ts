@@ -17,15 +17,28 @@ interface AuthResult {
   error?: string;
 }
 
-const API_APP_ID = process.env.ENTRA_API_APP_ID;
-if (!API_APP_ID) {
-  throw new Error('ENTRA_API_APP_ID environment variable is required');
+// Lazy-init: SWA function runtime may load modules before env vars are injected
+let _apiAppId: string | undefined;
+let _jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
+
+function getApiAppId(): string {
+  if (!_apiAppId) {
+    _apiAppId = process.env.ENTRA_API_APP_ID;
+    if (!_apiAppId) {
+      throw new Error('ENTRA_API_APP_ID environment variable is required');
+    }
+  }
+  return _apiAppId;
 }
 
-// JWKS for RS256 token verification
-const JWKS = createRemoteJWKSet(
-  new URL(`https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/discovery/v2.0/keys`)
-);
+function getJWKS() {
+  if (!_jwks) {
+    _jwks = createRemoteJWKSet(
+      new URL(`https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/discovery/v2.0/keys`)
+    );
+  }
+  return _jwks;
+}
 
 /**
  * Verify the Entra ID access token and check super_admin status
@@ -43,8 +56,8 @@ export async function authenticateSuperAdmin(
 
   try {
     // Verify RS256 token using Entra ID JWKS
-    const { payload } = await jwtVerify(token, JWKS, {
-      audience: API_APP_ID,
+    const { payload } = await jwtVerify(token, getJWKS(), {
+      audience: getApiAppId(),
       issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
     });
 
