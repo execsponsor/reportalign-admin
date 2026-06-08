@@ -1,3 +1,4 @@
+import './functions/healthCheck.js';
 import './functions/aiPromptTemplates.js';
 import './functions/aiUsage.js';
 import './functions/auditLog.js';
