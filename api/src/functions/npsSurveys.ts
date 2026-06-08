@@ -260,14 +260,14 @@ async function getOrgNpsSurveys(req: HttpRequest, context: InvocationContext): P
 
 app.http('listNpsSurveys', {
   methods: ['GET'],
-  authLevel: 'function',
+  authLevel: 'anonymous',
   route: 'nps-surveys',
   handler: listNpsSurveys,
 });
 
 app.http('getOrgNpsSurveys', {
   methods: ['GET'],
-  authLevel: 'function',
+  authLevel: 'anonymous',
   route: 'nps-surveys/{orgId}',
   handler: getOrgNpsSurveys,
 });

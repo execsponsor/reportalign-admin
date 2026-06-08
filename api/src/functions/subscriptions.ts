@@ -90,7 +90,7 @@ async function getSubscriptionOverview(req: HttpRequest, context: InvocationCont
 
 app.http('getSubscriptionOverview', {
   methods: ['GET'],
-  authLevel: 'function',
+  authLevel: 'anonymous',
   route: 'subscriptions/overview',
   handler: getSubscriptionOverview,
 });

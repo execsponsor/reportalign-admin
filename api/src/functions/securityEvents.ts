@@ -100,5 +100,5 @@ async function getSecuritySummary(req: HttpRequest, context: InvocationContext):
   }
 }
 
-app.http('listSecurityEvents', { methods: ['GET'], authLevel: 'function', route: 'security-events', handler: listSecurityEvents });
-app.http('getSecuritySummary', { methods: ['GET'], authLevel: 'function', route: 'security-events/summary', handler: getSecuritySummary });
+app.http('listSecurityEvents', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events', handler: listSecurityEvents });
+app.http('getSecuritySummary', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events/summary', handler: getSecuritySummary });
