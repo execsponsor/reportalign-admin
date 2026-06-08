@@ -25,7 +25,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "/frontend"
-          api_location: "/api"
+          api_location: "api"
           output_location: "dist"
         env:
           VITE_ENTRA_CLIENT_ID: c303da83-4258-45fa-a7fc-8edd00e87c1f
