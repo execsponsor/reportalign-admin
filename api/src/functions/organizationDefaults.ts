@@ -127,5 +127,5 @@ async function updateOrganizationDefaults(req: HttpRequest, context: InvocationC
 // Register routes
 // ============================================================================
 
-app.http('getOrganizationDefaults', { methods: ['GET'], authLevel: 'function', route: 'organization-defaults', handler: getOrganizationDefaults });
-app.http('updateOrganizationDefaults', { methods: ['PUT'], authLevel: 'function', route: 'organization-defaults', handler: updateOrganizationDefaults });
+app.http('getOrganizationDefaults', { methods: ['GET'], authLevel: 'anonymous', route: 'organization-defaults', handler: getOrganizationDefaults });
+app.http('updateOrganizationDefaults', { methods: ['PUT'], authLevel: 'anonymous', route: 'organization-defaults', handler: updateOrganizationDefaults });

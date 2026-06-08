@@ -68,4 +68,4 @@ async function platformStats(req: HttpRequest, context: InvocationContext): Prom
   }
 }
 
-app.http('platformStats', { methods: ['GET'], authLevel: 'function', route: 'platform-stats', handler: platformStats });
+app.http('platformStats', { methods: ['GET'], authLevel: 'anonymous', route: 'platform-stats', handler: platformStats });

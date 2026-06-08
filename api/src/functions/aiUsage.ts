@@ -64,4 +64,4 @@ async function getAIUsageSummary(req: HttpRequest, context: InvocationContext): 
   }
 }
 
-app.http('getAIUsageSummary', { methods: ['GET'], authLevel: 'function', route: 'ai-usage/summary', handler: getAIUsageSummary });
+app.http('getAIUsageSummary', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-usage/summary', handler: getAIUsageSummary });
