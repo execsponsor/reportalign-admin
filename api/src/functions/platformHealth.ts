@@ -61,4 +61,4 @@ async function getPlatformHealth(req: HttpRequest, context: InvocationContext): 
   }
 }
 
-app.http('getPlatformHealth', { methods: ['GET'], authLevel: 'anonymous', route: 'platform-health', handler: getPlatformHealth });
+app.http('getPlatformHealth', { methods: ['GET'], authLevel: 'function', route: 'platform-health', handler: getPlatformHealth });

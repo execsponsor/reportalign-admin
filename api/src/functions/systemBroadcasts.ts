@@ -151,9 +151,9 @@ async function updateMaintenanceWindow(req: HttpRequest, context: InvocationCont
   }
 }
 
-app.http('listBroadcasts', { methods: ['GET'], authLevel: 'anonymous', route: 'broadcasts', handler: listBroadcasts });
-app.http('createBroadcast', { methods: ['POST'], authLevel: 'anonymous', route: 'broadcasts', handler: createBroadcast });
-app.http('updateBroadcast', { methods: ['PATCH'], authLevel: 'anonymous', route: 'broadcasts/{id}', handler: updateBroadcast });
-app.http('listMaintenanceWindows', { methods: ['GET'], authLevel: 'anonymous', route: 'maintenance-windows', handler: listMaintenanceWindows });
-app.http('createMaintenanceWindow', { methods: ['POST'], authLevel: 'anonymous', route: 'maintenance-windows', handler: createMaintenanceWindow });
-app.http('updateMaintenanceWindow', { methods: ['PATCH'], authLevel: 'anonymous', route: 'maintenance-windows/{id}', handler: updateMaintenanceWindow });
+app.http('listBroadcasts', { methods: ['GET'], authLevel: 'function', route: 'broadcasts', handler: listBroadcasts });
+app.http('createBroadcast', { methods: ['POST'], authLevel: 'function', route: 'broadcasts', handler: createBroadcast });
+app.http('updateBroadcast', { methods: ['PATCH'], authLevel: 'function', route: 'broadcasts/{id}', handler: updateBroadcast });
+app.http('listMaintenanceWindows', { methods: ['GET'], authLevel: 'function', route: 'maintenance-windows', handler: listMaintenanceWindows });
+app.http('createMaintenanceWindow', { methods: ['POST'], authLevel: 'function', route: 'maintenance-windows', handler: createMaintenanceWindow });
+app.http('updateMaintenanceWindow', { methods: ['PATCH'], authLevel: 'function', route: 'maintenance-windows/{id}', handler: updateMaintenanceWindow });
