@@ -4,9 +4,9 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
-import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+import { authenticateSuperAdmin } from '../middleware/auth.js';
+import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 async function platformStats(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const auth = await authenticateSuperAdmin(req, context);
@@ -68,4 +68,4 @@ async function platformStats(req: HttpRequest, context: InvocationContext): Prom
   }
 }
 
-app.http('platformStats', { methods: ['GET'], authLevel: 'function', route: 'platform-stats', handler: platformStats });
+app.http('platformStats', { methods: ['GET'], authLevel: 'anonymous', route: 'platform-stats', handler: platformStats });

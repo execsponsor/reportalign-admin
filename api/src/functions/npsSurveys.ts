@@ -4,9 +4,9 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
-import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+import { authenticateSuperAdmin } from '../middleware/auth.js';
+import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 // ============================================================================
 // GET /api/nps-surveys — Platform-wide NPS summary by org
@@ -260,14 +260,14 @@ async function getOrgNpsSurveys(req: HttpRequest, context: InvocationContext): P
 
 app.http('listNpsSurveys', {
   methods: ['GET'],
-  authLevel: 'function',
+  authLevel: 'anonymous',
   route: 'nps-surveys',
   handler: listNpsSurveys,
 });
 
 app.http('getOrgNpsSurveys', {
   methods: ['GET'],
-  authLevel: 'function',
+  authLevel: 'anonymous',
   route: 'nps-surveys/{orgId}',
   handler: getOrgNpsSurveys,
 });

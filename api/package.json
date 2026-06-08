@@ -2,7 +2,7 @@
   "name": "execsponsor-admin-api",
   "version": "1.0.0",
   "description": "ExecSponsor Super Admin Portal - Azure Functions API",
-  "type": "commonjs",
+  "type": "module",
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc",
@@ -16,7 +16,7 @@
     "@azure/functions": "^4.5.0",
     "@azure/identity": "^4.2.0",
     "bcrypt": "^6.0.0",
-    "jose": "^4.15.9",
+    "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "jwks-rsa": "^3.1.0",
     "pg": "^8.11.3",

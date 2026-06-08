@@ -4,10 +4,10 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
-import { checkRateLimit } from '../middleware/rateLimit';
-import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth.js';
+import { checkRateLimit } from '../middleware/rateLimit.js';
+import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 const VALID_TEMPLATE_KEYS = ['improve', 'expand', 'summarize', 'formalize', 'executive_summary', 'risk_analysis', 'status_narrative', 'recommendation', 'board_brief'];
 const VALID_TONES = ['formal', 'conversational', 'technical', 'executive'];
@@ -122,6 +122,6 @@ async function updateAIPromptTemplate(req: HttpRequest, context: InvocationConte
   }
 }
 
-app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'function', route: 'ai-prompt-templates', handler: listAIPromptTemplates });
-app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'function', route: 'ai-prompt-templates/{templateKey}', handler: getAIPromptTemplate });
-app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'function', route: 'ai-prompt-templates/{templateKey}', handler: updateAIPromptTemplate });
+app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates', handler: listAIPromptTemplates });
+app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: getAIPromptTemplate });
+app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: updateAIPromptTemplate });

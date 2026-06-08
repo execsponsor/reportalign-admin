@@ -4,9 +4,9 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
-import { getPool } from '../utils/database';
-import { snakeToCamel } from '../utils/caseTransform';
+import { authenticateSuperAdmin } from '../middleware/auth.js';
+import { getPool } from '../utils/database.js';
+import { snakeToCamel } from '../utils/caseTransform.js';
 
 // ============================================================================
 // GET /api/subscriptions/overview — Subscription dashboard
@@ -90,7 +90,7 @@ async function getSubscriptionOverview(req: HttpRequest, context: InvocationCont
 
 app.http('getSubscriptionOverview', {
   methods: ['GET'],
-  authLevel: 'function',
+  authLevel: 'anonymous',
   route: 'subscriptions/overview',
   handler: getSubscriptionOverview,
 });
