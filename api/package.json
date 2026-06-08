@@ -4,7 +4,6 @@
   "description": "ExecSponsor Super Admin Portal - Azure Functions API",
   "type": "module",
   "main": "dist/src/index.js",
-  "engines": { "node": ">=18 <21" },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
