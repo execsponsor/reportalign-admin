@@ -1,4 +1,3 @@
-import { camelToSnake } from '../utils/caseTransform';
 /**
  * Organization Management Azure Functions
  * CRUD operations for organizations
@@ -70,7 +69,7 @@ async function listOrganizations(req: HttpRequest, context: InvocationContext): 
       status: 200,
       jsonBody: {
         success: true,
-        data: camelToSnake({
+        data: {
           organizations: orgsResult.rows,
           pagination: {
             page: params.page,
@@ -78,7 +77,7 @@ async function listOrganizations(req: HttpRequest, context: InvocationContext): 
             total: parseInt(countResult.rows[0].total),
             totalPages: Math.ceil(parseInt(countResult.rows[0].total) / params.limit),
           },
-        }),
+        },
       },
     };
   } catch (err) {
@@ -119,7 +118,7 @@ async function getOrganization(req: HttpRequest, context: InvocationContext): Pr
       return { status: 404, jsonBody: { success: false, error: 'Organization not found' } };
     }
 
-    return { status: 200, jsonBody: { success: true, data: camelToSnake(orgResult.rows[0]) } };
+    return { status: 200, jsonBody: { success: true, data: orgResult.rows[0] } };
   } catch (err) {
     context.error('getOrganization error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -344,7 +343,7 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
       status: 201,
       jsonBody: {
         success: true,
-        data: camelToSnake({
+        data: {
           organizationId: orgId,
           subdomain: data.subdomain,
           url: `https://${data.subdomain}.${process.env.PLATFORM_DOMAIN || 'execsponsor.com'}`,
@@ -352,7 +351,7 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
           adminPassword: password,
           userId,
           subscription: { tier: data.subscriptionTier, maxUsers: limits.maxUsers, maxProgrammes: limits.maxProgrammes },
-        }),
+        },
         message: 'Organization created successfully. Save the admin password — it will not be shown again.',
       },
     };

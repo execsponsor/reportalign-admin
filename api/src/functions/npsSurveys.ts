@@ -1,4 +1,3 @@
-import { camelToSnake } from '../utils/caseTransform';
 /**
  * NPS Survey Admin Azure Functions
  * Platform-wide NPS data aggregated by organization
@@ -127,7 +126,7 @@ async function listNpsSurveys(req: HttpRequest, context: InvocationContext): Pro
       status: 200,
       jsonBody: {
         success: true,
-        data: camelToSnake({
+        data: {
           platform: {
             totalResponses,
             avgScore: Math.round(parseFloat(platform.avg_score) * 10) / 10,
@@ -139,7 +138,7 @@ async function listNpsSurveys(req: HttpRequest, context: InvocationContext): Pro
           byOrg,
           trend,
           latestFeedback: feedbackResult.rows,
-        }),
+        },
       },
     };
   } catch (error) {
@@ -234,7 +233,7 @@ async function getOrgNpsSurveys(req: HttpRequest, context: InvocationContext): P
       status: 200,
       jsonBody: {
         success: true,
-        data: camelToSnake({
+        data: {
           organization: orgResult.rows[0],
           stats: {
             totalResponses,
@@ -246,7 +245,7 @@ async function getOrgNpsSurveys(req: HttpRequest, context: InvocationContext): P
           },
           trend,
           responses: responsesResult.rows,
-        }),
+        },
       },
     };
   } catch (error) {

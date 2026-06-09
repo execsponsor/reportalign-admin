@@ -1,4 +1,3 @@
-import { camelToSnake } from '../utils/caseTransform';
 /**
  * Signal Detection Rules — Super Admin Master Library Management
  *
@@ -57,7 +56,7 @@ async function listMasterRules(req: HttpRequest, context: InvocationContext): Pr
       return { ...(r as Record<string, unknown>), orgCount: stats?.orgCount || 0, disabledByOrgs: stats?.disabledCount || 0 };
     });
 
-    return { status: 200, jsonBody: { success: true, data: camelToSnake(rules) } };
+    return { status: 200, jsonBody: { success: true, data: rules } };
   } catch (error) {
     context.error('Error listing master rules:', error);
     return { status: 500, jsonBody: { error: 'Failed to list rules' } };
@@ -96,7 +95,7 @@ async function createMasterRule(req: HttpRequest, context: InvocationContext): P
 
     await logAuditAction(auth.superAdminId!, 'master_rule.created', 'contradiction_rule', result.rows[0].id, null, result.rows[0] as Record<string, unknown>);
 
-    return { status: 201, jsonBody: { success: true, data: camelToSnake(result.rows[0]) } };
+    return { status: 201, jsonBody: { success: true, data: result.rows[0] } };
   } catch (error: unknown) {
     const msg = (error as Error).message || '';
     if (msg.includes('uq_contradiction_rules_org_code')) {
@@ -143,7 +142,7 @@ async function updateMasterRule(req: HttpRequest, context: InvocationContext): P
 
     await logAuditAction(auth.superAdminId!, 'master_rule.updated', 'contradiction_rule', ruleId!, null, result.rows[0] as Record<string, unknown>);
 
-    return { status: 200, jsonBody: { success: true, data: camelToSnake(result.rows[0]) } };
+    return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
   } catch (error) {
     context.error('Error updating master rule:', error);
     return { status: 500, jsonBody: { error: 'Failed to update rule' } };
@@ -170,7 +169,7 @@ async function deleteMasterRule(req: HttpRequest, context: InvocationContext): P
 
     await logAuditAction(auth.superAdminId!, 'master_rule.deleted', 'contradiction_rule', ruleId!, { ruleCode: result.rows[0].rule_code }, null);
 
-    return { status: 200, jsonBody: { success: true, data: camelToSnake({ deleted: true, ruleCode: result.rows[0].rule_code }) } };
+    return { status: 200, jsonBody: { success: true, data: { deleted: true, ruleCode: result.rows[0].rule_code } } };
   } catch (error) {
     context.error('Error deleting master rule:', error);
     return { status: 500, jsonBody: { error: 'Failed to delete rule' } };
@@ -219,7 +218,7 @@ async function pushRuleToOrgs(req: HttpRequest, context: InvocationContext): Pro
 
     return {
       status: 200,
-      jsonBody: { success: true, data: camelToSnake({ ruleCode: rule.rule_code, orgsUpdated: result.rowCount }) },
+      jsonBody: { success: true, data: { ruleCode: rule.rule_code, orgsUpdated: result.rowCount } },
     };
   } catch (error) {
     context.error('Error pushing rule to orgs:', error);
@@ -246,10 +245,10 @@ async function getRuleStats(req: HttpRequest, context: InvocationContext): Promi
       status: 200,
       jsonBody: {
         success: true,
-        data: camelToSnake({
+        data: {
           totalOrganizations: parseInt(totalOrgs.rows[0].count),
           byType: stats.rows.map((r: Record<string, unknown>) => r),
-        }),
+        },
       },
     };
   } catch (error) {

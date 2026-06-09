@@ -1,4 +1,3 @@
-import { camelToSnake } from '../utils/caseTransform';
 /**
  * Subscription Overview Azure Functions
  * Cross-org subscription tiers, limits, and beta tracking
@@ -74,13 +73,13 @@ async function getSubscriptionOverview(req: HttpRequest, context: InvocationCont
       status: 200,
       jsonBody: {
         success: true,
-        data: camelToSnake({
+        data: {
           byTier: byTier.rows,
           byStatus: byStatus.rows,
           betaCustomers: betaCustomers.rows,
           approachingLimits: atLimit,
           recentOrgs: recentOrgs.rows,
-        }),
+        },
       },
     };
   } catch (err) {

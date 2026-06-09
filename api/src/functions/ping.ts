@@ -1,4 +1,3 @@
-import { camelToSnake } from '../utils/caseTransform';
 import { app } from '@azure/functions';
 
 app.http('ping', {

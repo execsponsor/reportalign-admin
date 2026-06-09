@@ -1,4 +1,3 @@
-import { camelToSnake } from '../utils/caseTransform';
 /**
  * Platform Health Azure Functions
  * System health, database stats, and uptime monitoring
@@ -36,7 +35,7 @@ async function getPlatformHealth(req: HttpRequest, context: InvocationContext): 
       status: 200,
       jsonBody: {
         success: true,
-        data: camelToSnake({
+        data: {
           database: {
             status: dbCheck.rows[0].ok === 1 ? 'healthy' : 'error',
             latencyMs: dbLatencyMs,
@@ -53,7 +52,7 @@ async function getPlatformHealth(req: HttpRequest, context: InvocationContext): 
             nodeVersion: process.version,
             memory: { heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024), heapTotalMb: Math.round(mem.heapTotal / 1024 / 1024), rssMb: Math.round(mem.rss / 1024 / 1024) },
           },
-        }),
+        },
       },
     };
   } catch (err) {
