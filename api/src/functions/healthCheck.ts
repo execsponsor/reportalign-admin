@@ -1,4 +1,3 @@
-import { camelToSnake } from '../utils/caseTransform';
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
 
 async function healthCheck(_req: HttpRequest): Promise<HttpResponseInit> {

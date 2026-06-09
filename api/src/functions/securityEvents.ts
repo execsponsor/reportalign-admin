@@ -1,4 +1,3 @@
-import { camelToSnake } from '../utils/caseTransform';
 /**
  * Security Events Azure Functions
  * Platform-wide security event monitoring
@@ -84,7 +83,7 @@ async function getSecuritySummary(req: HttpRequest, context: InvocationContext):
       status: 200,
       jsonBody: {
         success: true,
-        data: camelToSnake({
+        data: {
           failedLogins24h: parseInt(failed24h.rows[0].count),
           lockouts24h: parseInt(lockouts24h.rows[0].count),
           bySeverity7d: bySeverity7d.rows,
@@ -92,7 +91,7 @@ async function getSecuritySummary(req: HttpRequest, context: InvocationContext):
           topIps24h: topIps24h.rows,
           topEmails24h: topEmails24h.rows,
           dailyCounts14d: dailyCounts.rows,
-        }),
+        },
       },
     };
   } catch (err) {

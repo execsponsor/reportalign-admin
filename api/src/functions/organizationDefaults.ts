@@ -1,4 +1,3 @@
-import { camelToSnake } from '../utils/caseTransform';
 /**
  * Organization Defaults API
  * GET/PUT /api/organization-defaults — manage the default config applied when creating new organizations
@@ -40,12 +39,12 @@ async function getOrganizationDefaults(req: HttpRequest, context: InvocationCont
       status: 200,
       jsonBody: {
         success: true,
-        data: camelToSnake({
+        data: {
           defaults,
           updatedAt,
           updatedBy,
           isFromDatabase: result.rows.length > 0,
-        }),
+        },
       },
     };
   } catch (err) {

@@ -48,7 +48,7 @@ export function useSignalDetectionRules() {
   return useQuery<SignalDetectionRule[]>({
     queryKey: ['admin', 'signal-detection-rules'],
     queryFn: async () => {
-      const res = await apiClient.get('/api/signal-detection-rules');
+      const res = await apiClient.get('/signal-detection-rules');
       return res.data?.data || res.data || [];
     },
     staleTime: 30 * 1000,
@@ -59,7 +59,7 @@ export function useRuleStats() {
   return useQuery<RuleStats>({
     queryKey: ['admin', 'signal-detection-rules', 'stats'],
     queryFn: async () => {
-      const res = await apiClient.get('/api/signal-detection-rules/stats');
+      const res = await apiClient.get('/signal-detection-rules/stats');
       return res.data?.data || res.data;
     },
     staleTime: 30 * 1000,
@@ -70,7 +70,7 @@ export function useCreateMasterRule() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateRuleInput) => {
-      const res = await apiClient.post('/api/signal-detection-rules', input);
+      const res = await apiClient.post('/signal-detection-rules', input);
       return res.data?.data || res.data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin', 'signal-detection-rules'] }); },
