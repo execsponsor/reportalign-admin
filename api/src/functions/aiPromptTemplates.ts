@@ -1,3 +1,4 @@
+import { camelToSnake } from '../utils/caseTransform';
 /**
  * AI Prompt Templates Azure Functions
  * Super admin management of system-default AI prompt templates
@@ -34,7 +35,7 @@ async function listAIPromptTemplates(req: HttpRequest, context: InvocationContex
 
     const templates = templatesResult.rows.map((t) => ({ ...t, override_count: overrideCounts[t.template_key] || 0 }));
 
-    return { status: 200, jsonBody: { success: true, data: { templates: templates } } };
+    return { status: 200, jsonBody: { success: true, data: camelToSnake({ templates: templates }) } };
   } catch (err) {
     context.error('listAIPromptTemplates error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -62,7 +63,7 @@ async function getAIPromptTemplate(req: HttpRequest, context: InvocationContext)
        WHERE apt.template_key = $1 AND apt.organization_id IS NOT NULL AND apt.is_default = false ORDER BY o.name`, [templateKey]
     );
 
-    return { status: 200, jsonBody: { success: true, data: { template: templateResult.rows[0], overrides: overridesResult.rows } } };
+    return { status: 200, jsonBody: { success: true, data: camelToSnake({ template: templateResult.rows[0], overrides: overridesResult.rows }) } };
   } catch (err) {
     context.error('getAIPromptTemplate error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };
@@ -115,7 +116,7 @@ async function updateAIPromptTemplate(req: HttpRequest, context: InvocationConte
       `Updated system default template: ${templateKey}`
     );
 
-    return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
+    return { status: 200, jsonBody: { success: true, data: camelToSnake(result.rows[0]) } };
   } catch (err) {
     context.error('updateAIPromptTemplate error:', err instanceof Error ? err.message : String(err));
     return { status: 500, jsonBody: { success: false, error: err instanceof Error ? err.message : 'Internal error' } };

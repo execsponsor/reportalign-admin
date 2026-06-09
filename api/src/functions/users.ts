@@ -1,3 +1,4 @@
+import { camelToSnake } from '../utils/caseTransform';
 /**
  * User Management Azure Functions
  */
@@ -49,7 +50,7 @@ async function listUsers(req: HttpRequest, context: InvocationContext): Promise<
     status: 200,
     jsonBody: {
       success: true,
-      data: {
+      data: camelToSnake({
         users: usersResult.rows,
         pagination: {
           page: params.page,
@@ -57,7 +58,7 @@ async function listUsers(req: HttpRequest, context: InvocationContext): Promise<
           total: parseInt(countResult.rows[0].total),
           totalPages: Math.ceil(parseInt(countResult.rows[0].total) / params.limit),
         },
-      },
+      }),
     },
   };
 }
@@ -100,11 +101,11 @@ async function getUser(req: HttpRequest, context: InvocationContext): Promise<Ht
       status: 200,
       jsonBody: {
         success: true,
-        data: {
+        data: camelToSnake({
           ...user,
           organizations: orgsResult.rows,
           programmes: programmesResult.rows,
-        },
+        }),
       },
     };
   } catch (err) {
@@ -159,7 +160,7 @@ async function createUser(req: HttpRequest, context: InvocationContext): Promise
     status: 201,
     jsonBody: {
       success: true,
-      data: { userId, email: data.email, password, accessLevel: data.accessLevel },
+      data: camelToSnake({ userId, email: data.email, password, accessLevel: data.accessLevel }),
       message: 'User created. Save the password — it will not be shown again.',
     },
   };
@@ -210,7 +211,7 @@ async function resetPassword(req: HttpRequest, context: InvocationContext): Prom
     status: 200,
     jsonBody: {
       success: true,
-      data: { password },
+      data: camelToSnake({ password }),
       message: 'Password reset. Save the new password — it will not be shown again.',
     },
   };
