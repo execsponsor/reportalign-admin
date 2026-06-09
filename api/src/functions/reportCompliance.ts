@@ -1,3 +1,4 @@
+import { camelToSnake } from '../utils/caseTransform';
 /**
  * Report Compliance Azure Functions
  * Cross-org report submission rates and compliance metrics
@@ -57,7 +58,7 @@ async function getReportCompliance(req: HttpRequest, context: InvocationContext)
       status: 200,
       jsonBody: {
         success: true,
-        data: {
+        data: camelToSnake({
           totals: totals.rows[0],
           byOrg: byOrg.rows,
           monthlyVolume: monthlyVolume.rows,
@@ -66,7 +67,7 @@ async function getReportCompliance(req: HttpRequest, context: InvocationContext)
             medianHours: cycleTime.rows[0]?.median_hours ? Math.round(parseFloat(cycleTime.rows[0].median_hours)) : null,
           },
           staleProgrammes: stale.rows,
-        },
+        }),
       },
     };
   } catch (err) {

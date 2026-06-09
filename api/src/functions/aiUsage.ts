@@ -1,3 +1,4 @@
+import { camelToSnake } from '../utils/caseTransform';
 /**
  * AI Usage & Cost Azure Functions
  * Cross-organisation AI usage monitoring
@@ -41,7 +42,7 @@ async function getAIUsageSummary(req: HttpRequest, context: InvocationContext): 
       status: 200,
       jsonBody: {
         success: true,
-        data: {
+        data: camelToSnake({
           totals: {
             totalRequests: parseInt(row?.total_requests ?? '0'),
             totalInputTokens: parseInt(row?.total_input_tokens ?? '0'),
@@ -55,7 +56,7 @@ async function getAIUsageSummary(req: HttpRequest, context: InvocationContext): 
           byProvider: byProvider.rows,
           dailyUsage: dailyUsage.rows,
           providerSplit: { platformDefault: parseInt(splitRow?.platform_default ?? '0'), byoai: parseInt(splitRow?.byoai ?? '0') },
-        },
+        }),
       },
     };
   } catch (err) {

@@ -1,3 +1,4 @@
+import { camelToSnake } from '../utils/caseTransform';
 /**
  * Audit Log Azure Function
  * GET /api/audit-log
@@ -71,7 +72,7 @@ async function getAuditLog(req: HttpRequest, context: InvocationContext): Promis
       status: 200,
       jsonBody: {
         success: true,
-        data: {
+        data: camelToSnake({
           entries: logResult.rows,
           pagination: {
             page: filters.page,
@@ -79,7 +80,7 @@ async function getAuditLog(req: HttpRequest, context: InvocationContext): Promis
             total,
             totalPages: Math.ceil(total / filters.limit),
           },
-        },
+        }),
       },
     };
   } catch (err) {

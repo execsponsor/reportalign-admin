@@ -1,3 +1,4 @@
+import { camelToSnake } from '../utils/caseTransform';
 /**
  * Platform Statistics Azure Function
  * GET /api/platform-stats
@@ -49,7 +50,7 @@ async function platformStats(req: HttpRequest, context: InvocationContext): Prom
       status: 200,
       jsonBody: {
         success: true,
-        data: {
+        data: camelToSnake({
           organizations: orgs.rows[0],
           users: users.rows[0],
           programmes: { total: parseInt(programmes.rows[0]?.total ?? '0') },
@@ -59,7 +60,7 @@ async function platformStats(req: HttpRequest, context: InvocationContext): Prom
             newUsers30d: parseInt(recentUsers.rows[0]?.count ?? '0'),
           },
           subscriptions: subscriptions.rows,
-        },
+        }),
       },
     };
   } catch (err) {
