@@ -59,13 +59,13 @@ async function getReportCompliance(req: HttpRequest, context: InvocationContext)
         success: true,
         data: {
           totals: totals.rows[0],
-          byOrg: byOrg.rows,
-          monthlyVolume: monthlyVolume.rows,
-          cycleTime: {
-            avgHours: cycleTime.rows[0]?.avg_hours_to_approval ? Math.round(parseFloat(cycleTime.rows[0].avg_hours_to_approval)) : null,
-            medianHours: cycleTime.rows[0]?.median_hours ? Math.round(parseFloat(cycleTime.rows[0].median_hours)) : null,
+          by_org: byOrg.rows,
+          monthly_volume: monthlyVolume.rows,
+          cycle_time: {
+            avg_hours: cycleTime.rows[0]?.avg_hours_to_approval ? Math.round(parseFloat(cycleTime.rows[0].avg_hours_to_approval)) : null,
+            median_hours: cycleTime.rows[0]?.median_hours ? Math.round(parseFloat(cycleTime.rows[0].median_hours)) : null,
           },
-          staleProgrammes: stale.rows,
+          stale_programmes: stale.rows,
         },
       },
     };

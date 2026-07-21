@@ -74,11 +74,11 @@ async function getSubscriptionOverview(req: HttpRequest, context: InvocationCont
       jsonBody: {
         success: true,
         data: {
-          byTier: byTier.rows,
-          byStatus: byStatus.rows,
-          betaCustomers: betaCustomers.rows,
-          approachingLimits: atLimit,
-          recentOrgs: recentOrgs.rows,
+          by_tier: byTier.rows,
+          by_status: byStatus.rows,
+          beta_customers: betaCustomers.rows,
+          approaching_limits: atLimit,
+          recent_orgs: recentOrgs.rows,
         },
       },
     };
