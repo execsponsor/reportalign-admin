@@ -32,5 +32,8 @@ jobs:
           VITE_ENTRA_TENANT_ID: 968f235a-c65e-4e4c-b308-9dd27c1b5a30
           VITE_ENTRA_AUTHORITY: https://login.microsoftonline.com/968f235a-c65e-4e4c-b308-9dd27c1b5a30
           VITE_ENTRA_API_APP_ID: cde2b783-c437-4758-9308-d9474e27bc39
-          VITE_API_BASE_URL: https://execsponsor-admin-api.azurewebsites.net/api
+          # ADM-H1 fix: prod must use the same-origin SWA-managed /api (prod DB).
+          # The api-client defaults to '/api' when VITE_API_BASE_URL is unset — the
+          # previous override pointed the PROD portal at the NON-PROD API / pre-prod
+          # DB, so admin actions on prod customers silently wrote to pre-prod.
           NODE_VERSION: '22'
