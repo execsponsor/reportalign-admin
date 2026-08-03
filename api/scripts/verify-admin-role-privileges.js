@@ -41,7 +41,6 @@ const EXPECTED = {
   programmes: ['SELECT'],
   reports: ['SELECT'],
   security_events: ['SELECT'],
-  stakeholders: ['SELECT'],
   ai_prompt_templates: ['SELECT', 'UPDATE'],
   contradiction_rules: ['SELECT', 'INSERT', 'UPDATE', 'DELETE'],
   key_indicators: ['INSERT'],
