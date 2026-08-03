@@ -17,8 +17,15 @@ const MAX_REQUESTS = 100;
 
 const ipMap = new Map<string, RateLimitEntry>();
 
-// Periodic cleanup to avoid unbounded growth
-setInterval(() => {
+// Periodic cleanup to avoid unbounded growth.
+//
+// .unref() matters: this runs at MODULE scope, so merely importing this file starts a timer that
+// keeps the Node event loop alive forever. Any process that imports it — the CI test run, a
+// script, a one-off — then never exits on its own. That is exactly what happened: `npm test` hung
+// until the job timeout cancelled it, and it went unnoticed locally because every manual run used
+// --forceExit. An unref'd interval still fires while the app is running, but stops holding the
+// process open once there is nothing else to do, which is the behaviour a cleanup timer wants.
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of ipMap) {
     if (now > entry.resetAt) {
@@ -26,6 +33,7 @@ setInterval(() => {
     }
   }
 }, WINDOW_MS);
+cleanupTimer.unref();
 
 /**
  * B6 (finding A7) — key on a platform-set address, not on client input.
