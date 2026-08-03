@@ -41,7 +41,7 @@ async function createBroadcast(req: HttpRequest, context: InvocationContext, aut
       `INSERT INTO system_broadcasts (id, title, message, link_url, link_text, broadcast_type, target_organization_ids, starts_at, ends_at, is_active, show_on_auth_pages, show_on_app, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [id, body.title, body.message, body.link_url || null, body.link_text || null, body.broadcast_type, body.target_organization_ids || null, body.starts_at || null, body.ends_at || null, body.is_active !== false, body.show_on_auth_pages || false, body.show_on_app !== false, auth.userId]
     );
-    await logAuditAction(auth.superAdminId!, 'CREATE_BROADCAST', 'system_broadcast', id, null, { title: body.title, type: body.broadcast_type }, `Created ${body.broadcast_type} broadcast: ${body.title}`);
+    await logAuditAction(auth, 'CREATE_BROADCAST', 'system_broadcast', id, null, { title: body.title, type: body.broadcast_type }, `Created ${body.broadcast_type} broadcast: ${body.title}`);
     return { status: 201, jsonBody: { success: true, data: result.rows[0] } };
   } catch (err) {
     context.error('createBroadcast error:', err instanceof Error ? err.message : String(err));
@@ -62,7 +62,7 @@ async function updateBroadcast(req: HttpRequest, context: InvocationContext, aut
     updates.push(`updated_at = NOW()`);
     const result = await pool.query(`UPDATE system_broadcasts SET ${updates.join(', ')} WHERE id = $${paramIdx} RETURNING *`, [...params, broadcastId]);
     if (result.rows.length === 0) return { status: 404, jsonBody: { success: false, error: 'Broadcast not found' } };
-    await logAuditAction(auth.superAdminId!, 'UPDATE_BROADCAST', 'system_broadcast', broadcastId, null, { is_active: body.is_active }, `Updated broadcast: ${result.rows[0].title}`);
+    await logAuditAction(auth, 'UPDATE_BROADCAST', 'system_broadcast', broadcastId, null, { is_active: body.is_active }, `Updated broadcast: ${result.rows[0].title}`);
     return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
   } catch (err) {
     context.error('updateBroadcast error:', err instanceof Error ? err.message : String(err));
@@ -97,7 +97,7 @@ async function createMaintenanceWindow(req: HttpRequest, context: InvocationCont
       `INSERT INTO maintenance_windows (id, title, description, reason, scheduled_start, scheduled_end, status, created_by) VALUES ($1,$2,$3,$4,$5,$6,'scheduled',$7) RETURNING *`,
       [id, body.title, body.description || null, reason, body.scheduled_start, body.scheduled_end, auth.userId]
     );
-    await logAuditAction(auth.superAdminId!, 'CREATE_MAINTENANCE_WINDOW', 'maintenance_window', id, null, { title: body.title, scheduled_start: body.scheduled_start }, `Scheduled maintenance: ${body.title}`);
+    await logAuditAction(auth, 'CREATE_MAINTENANCE_WINDOW', 'maintenance_window', id, null, { title: body.title, scheduled_start: body.scheduled_start }, `Scheduled maintenance: ${body.title}`);
     return { status: 201, jsonBody: { success: true, data: result.rows[0] } };
   } catch (err) {
     context.error('createMaintenanceWindow error:', err instanceof Error ? err.message : String(err));
@@ -118,7 +118,7 @@ async function updateMaintenanceWindow(req: HttpRequest, context: InvocationCont
     updates.push(`updated_at = NOW()`);
     const result = await pool.query(`UPDATE maintenance_windows SET ${updates.join(', ')} WHERE id = $${paramIdx} RETURNING *`, [...params, windowId]);
     if (result.rows.length === 0) return { status: 404, jsonBody: { success: false, error: 'Maintenance window not found' } };
-    await logAuditAction(auth.superAdminId!, 'UPDATE_MAINTENANCE_WINDOW', 'maintenance_window', windowId, null, { status: body.status }, `Updated maintenance window: ${result.rows[0].title}`);
+    await logAuditAction(auth, 'UPDATE_MAINTENANCE_WINDOW', 'maintenance_window', windowId, null, { status: body.status }, `Updated maintenance window: ${result.rows[0].title}`);
     return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
   } catch (err) {
     context.error('updateMaintenanceWindow error:', err instanceof Error ? err.message : String(err));

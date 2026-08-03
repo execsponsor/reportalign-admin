@@ -138,7 +138,7 @@ async function createUser(req: HttpRequest, context: InvocationContext, auth: Au
     [data.organizationId, userId, data.accessLevel, data.accessLevel]
   );
 
-  await logAuditAction(auth.superAdminId!, 'CREATE_USER', 'user', userId, null, {
+  await logAuditAction(auth, 'CREATE_USER', 'user', userId, null, {
     email: data.email, organizationId: data.organizationId, accessLevel: data.accessLevel,
   });
 
@@ -162,7 +162,7 @@ async function unlockUser(req: HttpRequest, context: InvocationContext, auth: Au
     [id]
   );
 
-  await logAuditAction(auth.superAdminId!, 'UNLOCK_ACCOUNT', 'user', id, null, { unlocked: true });
+  await logAuditAction(auth, 'UNLOCK_ACCOUNT', 'user', id, null, { unlocked: true });
 
   return { status: 200, jsonBody: { success: true, message: 'Account unlocked' } };
 }
@@ -179,7 +179,7 @@ async function resetPassword(req: HttpRequest, context: InvocationContext, auth:
     [passwordHash, id]
   );
 
-  await logAuditAction(auth.superAdminId!, 'RESET_PASSWORD', 'user', id, null, { passwordReset: true });
+  await logAuditAction(auth, 'RESET_PASSWORD', 'user', id, null, { passwordReset: true });
 
   return {
     status: 200,
@@ -199,7 +199,7 @@ async function deactivateUser(req: HttpRequest, context: InvocationContext, auth
   await pool.query('UPDATE users SET is_active = false WHERE id = $1', [id]);
   await pool.query('UPDATE organization_users SET is_active = false WHERE user_id = $1', [id]);
 
-  await logAuditAction(auth.superAdminId!, 'DEACTIVATE_USER', 'user', id, null, { deactivated: true });
+  await logAuditAction(auth, 'DEACTIVATE_USER', 'user', id, null, { deactivated: true });
 
   return { status: 200, jsonBody: { success: true, message: 'User deactivated' } };
 }
@@ -212,7 +212,7 @@ async function reactivateUser(req: HttpRequest, context: InvocationContext, auth
   await pool.query('UPDATE users SET is_active = true WHERE id = $1', [id]);
   await pool.query('UPDATE organization_users SET is_active = true WHERE user_id = $1', [id]);
 
-  await logAuditAction(auth.superAdminId!, 'REACTIVATE_USER', 'user', id, null, { reactivated: true });
+  await logAuditAction(auth, 'REACTIVATE_USER', 'user', id, null, { reactivated: true });
 
   return { status: 200, jsonBody: { success: true, message: 'User reactivated' } };
 }

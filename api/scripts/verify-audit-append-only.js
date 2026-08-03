@@ -36,11 +36,17 @@ function record(name, passed, detail) {
 }
 
 async function main() {
-  const connectionString =
-    process.env.ADMIN_DATABASE_URL || process.env.TEST_ADMIN_DATABASE_URL || process.env.DATABASE_URL;
-  if (!connectionString) { console.error('No connection string available.'); process.exit(2); }
+  // USE_PG_ENV=1 makes pg read the standard libpq variables, so a production credential never has
+  // to be interpolated into a URL in the shell.
+  const useEnv = process.env.USE_PG_ENV === '1';
+  const connectionString = useEnv
+    ? undefined
+    : (process.env.ADMIN_DATABASE_URL || process.env.TEST_ADMIN_DATABASE_URL || process.env.DATABASE_URL);
+  if (!useEnv && !connectionString) { console.error('No connection string available.'); process.exit(2); }
 
-  const c = new Client({ connectionString, ssl: { rejectUnauthorized: false } });
+  const c = new Client(
+    useEnv ? { ssl: { rejectUnauthorized: false } } : { connectionString, ssl: { rejectUnauthorized: false } }
+  );
   await c.connect();
   const { rows: [me] } = await c.query('SELECT current_database() db, current_user role');
   console.log(`Target: ${me.db} as ${me.role}\n`);

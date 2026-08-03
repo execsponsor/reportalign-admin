@@ -96,7 +96,7 @@ async function updateAIPromptTemplate(req: HttpRequest, context: InvocationConte
       [...params, templateKey]
     );
 
-    await logAuditAction(auth.superAdminId!, 'UPDATE_AI_PROMPT_TEMPLATE', 'ai_prompt_template', result.rows[0].id,
+    await logAuditAction(auth, 'UPDATE_AI_PROMPT_TEMPLATE', 'ai_prompt_template', result.rows[0].id,
       { tone: beforeValue.tone, temperature: beforeValue.temperature },
       { tone: body.tone || beforeValue.tone, temperature: body.temperature || beforeValue.temperature },
       `Updated system default template: ${templateKey}`

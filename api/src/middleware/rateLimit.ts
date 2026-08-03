@@ -5,6 +5,7 @@
  */
 
 import { HttpRequest, HttpResponseInit } from '@azure/functions';
+import { extractOriginIp } from '../utils/clientIp';
 
 interface RateLimitEntry {
   count: number;
@@ -26,13 +27,24 @@ setInterval(() => {
   }
 }, WINDOW_MS);
 
+/**
+ * B6 (finding A7) — key on a platform-set address, not on client input.
+ *
+ * This previously read `x-forwarded-for`'s FIRST element, then fell back to `x-client-ip` and
+ * `client-ip`. All three are attacker-controlled: a caller sets the header, the infrastructure
+ * appends the real address AFTER it, and element [0] is whatever the caller chose. Rotating that
+ * value defeated the limiter completely. It now shares extractOriginIp() with the audit log, which
+ * prefers headers Front Door overwrites on ingress and otherwise takes the LAST forwarded hop.
+ *
+ * REMAINING LIMITATION, deliberately not fixed here: the store is an in-process Map, so each
+ * Function App instance counts separately and every counter resets on restart. Under scale-out
+ * the effective limit is (instances x 100) per minute rather than 100. That is acceptable only
+ * because this sits behind Entra authentication and is a secondary control — it must not be
+ * relied on as a primary defence. Making it shared means an external store (Redis or equivalent),
+ * which is out of proportion to the risk here.
+ */
 function getClientIp(req: HttpRequest): string {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('x-client-ip') ||
-    req.headers.get('client-ip') ||
-    'unknown'
-  );
+  return extractOriginIp(req).ip ?? 'unknown';
 }
 
 /**

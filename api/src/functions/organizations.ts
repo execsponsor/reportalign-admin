@@ -322,7 +322,7 @@ async function createOrganization(req: HttpRequest, context: InvocationContext, 
 
     await client.query('COMMIT');
 
-    await logAuditAction(auth.superAdminId!, 'CREATE_ORGANIZATION', 'organization', orgId, null, {
+    await logAuditAction(auth, 'CREATE_ORGANIZATION', 'organization', orgId, null, {
       name: data.name, subdomain: data.subdomain, tier: data.subscriptionTier, adminEmail: data.adminEmail,
     });
 
@@ -398,7 +398,7 @@ async function updateOrganization(req: HttpRequest, context: InvocationContext, 
       params
     );
 
-    await logAuditAction(auth.superAdminId!, 'UPDATE_ORGANIZATION', 'organization', id,
+    await logAuditAction(auth, 'UPDATE_ORGANIZATION', 'organization', id,
       current.rows[0], body as Record<string, unknown>, body.reason as string);
 
     return { status: 200, jsonBody: { success: true, message: 'Organization updated' } };

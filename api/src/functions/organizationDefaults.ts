@@ -90,7 +90,7 @@ async function updateOrganizationDefaults(req: HttpRequest, context: InvocationC
     );
 
     await logAuditAction(
-      auth.superAdminId!,
+      auth,
       'UPDATE_ORGANIZATION_DEFAULTS',
       'platform_config',
       null,

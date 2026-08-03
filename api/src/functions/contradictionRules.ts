@@ -87,7 +87,7 @@ async function createMasterRule(req: HttpRequest, context: InvocationContext, au
       ]
     );
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.created', 'contradiction_rule', result.rows[0].id, null, result.rows[0] as Record<string, unknown>);
+    await logAuditAction(auth, 'master_rule.created', 'contradiction_rule', result.rows[0].id, null, result.rows[0] as Record<string, unknown>);
 
     return { status: 201, jsonBody: { success: true, data: result.rows[0] } };
   } catch (error: unknown) {
@@ -131,7 +131,7 @@ async function updateMasterRule(req: HttpRequest, context: InvocationContext, au
       return { status: 404, jsonBody: { error: 'Master rule not found' } };
     }
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.updated', 'contradiction_rule', ruleId!, null, result.rows[0] as Record<string, unknown>);
+    await logAuditAction(auth, 'master_rule.updated', 'contradiction_rule', ruleId!, null, result.rows[0] as Record<string, unknown>);
 
     return { status: 200, jsonBody: { success: true, data: result.rows[0] } };
   } catch (error) {
@@ -155,7 +155,7 @@ async function deleteMasterRule(req: HttpRequest, context: InvocationContext, au
       return { status: 404, jsonBody: { error: 'Master rule not found' } };
     }
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.deleted', 'contradiction_rule', ruleId!, { ruleCode: result.rows[0].rule_code }, null);
+    await logAuditAction(auth, 'master_rule.deleted', 'contradiction_rule', ruleId!, { ruleCode: result.rows[0].rule_code }, null);
 
     return { status: 200, jsonBody: { success: true, data: { deleted: true, ruleCode: result.rows[0].rule_code } } };
   } catch (error) {
@@ -199,7 +199,7 @@ async function pushRuleToOrgs(req: HttpRequest, context: InvocationContext, auth
       ]
     );
 
-    await logAuditAction(auth.superAdminId!, 'master_rule.pushed', 'contradiction_rule', ruleId!, null, { ruleCode: rule.rule_code, orgsUpdated: result.rowCount });
+    await logAuditAction(auth, 'master_rule.pushed', 'contradiction_rule', ruleId!, null, { ruleCode: rule.rule_code, orgsUpdated: result.rowCount });
 
     return {
       status: 200,
