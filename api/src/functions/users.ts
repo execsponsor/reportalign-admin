@@ -3,8 +3,7 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
-import { checkRateLimit } from '../middleware/rateLimit';
+import { logAuditAction, withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 import { generatePassword, hashPassword, hashEmail } from '../utils/crypto';
 import { createUserSchema, paginationSchema } from '../utils/validation';
@@ -12,10 +11,7 @@ import { createUserSchema, paginationSchema } from '../utils/validation';
 import { v4 as uuidv4 } from 'uuid';
 
 // GET /api/users — List all users
-async function listUsers(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function listUsers(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   const params = paginationSchema.parse(Object.fromEntries(req.query));
   const pool = getPool();
   const offset = (params.page - 1) * params.limit;
@@ -63,10 +59,7 @@ async function listUsers(req: HttpRequest, context: InvocationContext): Promise<
 }
 
 // GET /api/users/:id — View user details
-async function getUser(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function getUser(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const id = req.params.id;
     const pool = getPool();
@@ -117,13 +110,7 @@ async function getUser(req: HttpRequest, context: InvocationContext): Promise<Ht
 }
 
 // POST /api/users — Create user
-async function createUser(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function createUser(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   const body = await req.json() as Record<string, unknown>;
   const data = createUserSchema.parse(body);
   const pool = getPool();
@@ -151,7 +138,7 @@ async function createUser(req: HttpRequest, context: InvocationContext): Promise
     [data.organizationId, userId, data.accessLevel, data.accessLevel]
   );
 
-  await logAuditAction(auth.superAdminId!, 'CREATE_USER', 'user', userId, null, {
+  await logAuditAction(auth, 'CREATE_USER', 'user', userId, null, {
     email: data.email, organizationId: data.organizationId, accessLevel: data.accessLevel,
   });
 
@@ -166,13 +153,7 @@ async function createUser(req: HttpRequest, context: InvocationContext): Promise
 }
 
 // POST /api/users/:id/unlock — Unlock account
-async function unlockUser(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function unlockUser(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   const id = req.params.id;
   const pool = getPool();
 
@@ -181,19 +162,13 @@ async function unlockUser(req: HttpRequest, context: InvocationContext): Promise
     [id]
   );
 
-  await logAuditAction(auth.superAdminId!, 'UNLOCK_ACCOUNT', 'user', id, null, { unlocked: true });
+  await logAuditAction(auth, 'UNLOCK_ACCOUNT', 'user', id, null, { unlocked: true });
 
   return { status: 200, jsonBody: { success: true, message: 'Account unlocked' } };
 }
 
 // POST /api/users/:id/reset-password — Reset password
-async function resetPassword(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function resetPassword(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   const id = req.params.id;
   const pool = getPool();
   const password = generatePassword();
@@ -204,7 +179,7 @@ async function resetPassword(req: HttpRequest, context: InvocationContext): Prom
     [passwordHash, id]
   );
 
-  await logAuditAction(auth.superAdminId!, 'RESET_PASSWORD', 'user', id, null, { passwordReset: true });
+  await logAuditAction(auth, 'RESET_PASSWORD', 'user', id, null, { passwordReset: true });
 
   return {
     status: 200,
@@ -217,48 +192,36 @@ async function resetPassword(req: HttpRequest, context: InvocationContext): Prom
 }
 
 // POST /api/users/:id/deactivate — Deactivate
-async function deactivateUser(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function deactivateUser(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   const id = req.params.id;
   const pool = getPool();
 
   await pool.query('UPDATE users SET is_active = false WHERE id = $1', [id]);
   await pool.query('UPDATE organization_users SET is_active = false WHERE user_id = $1', [id]);
 
-  await logAuditAction(auth.superAdminId!, 'DEACTIVATE_USER', 'user', id, null, { deactivated: true });
+  await logAuditAction(auth, 'DEACTIVATE_USER', 'user', id, null, { deactivated: true });
 
   return { status: 200, jsonBody: { success: true, message: 'User deactivated' } };
 }
 
 // POST /api/users/:id/reactivate — Reactivate
-async function reactivateUser(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function reactivateUser(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   const id = req.params.id;
   const pool = getPool();
 
   await pool.query('UPDATE users SET is_active = true WHERE id = $1', [id]);
   await pool.query('UPDATE organization_users SET is_active = true WHERE user_id = $1', [id]);
 
-  await logAuditAction(auth.superAdminId!, 'REACTIVATE_USER', 'user', id, null, { reactivated: true });
+  await logAuditAction(auth, 'REACTIVATE_USER', 'user', id, null, { reactivated: true });
 
   return { status: 200, jsonBody: { success: true, message: 'User reactivated' } };
 }
 
 // Register routes
-app.http('listUsers', { methods: ['GET'], authLevel: 'anonymous', route: 'users', handler: listUsers });
-app.http('getUser', { methods: ['GET'], authLevel: 'anonymous', route: 'users/{id}', handler: getUser });
-app.http('createUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users', handler: createUser });
-app.http('unlockUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/unlock', handler: unlockUser });
-app.http('resetPassword', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/reset-password', handler: resetPassword });
-app.http('deactivateUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/deactivate', handler: deactivateUser });
-app.http('reactivateUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/reactivate', handler: reactivateUser });
+app.http('listUsers', { methods: ['GET'], authLevel: 'anonymous', route: 'users', handler: withSuperAdmin(listUsers) });
+app.http('getUser', { methods: ['GET'], authLevel: 'anonymous', route: 'users/{id}', handler: withSuperAdmin(getUser) });
+app.http('createUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users', handler: withSuperAdmin(createUser, { rateLimitFirst: true }) });
+app.http('unlockUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/unlock', handler: withSuperAdmin(unlockUser, { rateLimitFirst: true }) });
+app.http('resetPassword', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/reset-password', handler: withSuperAdmin(resetPassword, { rateLimitFirst: true }) });
+app.http('deactivateUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/deactivate', handler: withSuperAdmin(deactivateUser, { rateLimitFirst: true }) });
+app.http('reactivateUser', { methods: ['POST'], authLevel: 'anonymous', route: 'users/{id}/reactivate', handler: withSuperAdmin(reactivateUser, { rateLimitFirst: true }) });

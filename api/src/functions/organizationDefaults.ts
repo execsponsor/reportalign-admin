@@ -4,8 +4,7 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
-import { checkRateLimit } from '../middleware/rateLimit';
+import { logAuditAction, withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 
 import { readFileSync } from 'fs';
@@ -20,10 +19,7 @@ const HARDCODED_DEFAULTS = JSON.parse(
 // GET /api/organization-defaults — Retrieve current defaults
 // ============================================================================
 
-async function getOrganizationDefaults(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function getOrganizationDefaults(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
     const result = await pool.query(
@@ -57,13 +53,7 @@ async function getOrganizationDefaults(req: HttpRequest, context: InvocationCont
 // PUT /api/organization-defaults — Update defaults
 // ============================================================================
 
-async function updateOrganizationDefaults(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function updateOrganizationDefaults(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const body = await req.json() as Record<string, unknown>;
     const newDefaults = body.defaults;
@@ -100,7 +90,7 @@ async function updateOrganizationDefaults(req: HttpRequest, context: InvocationC
     );
 
     await logAuditAction(
-      auth.superAdminId!,
+      auth,
       'UPDATE_ORGANIZATION_DEFAULTS',
       'platform_config',
       null,
@@ -122,5 +112,5 @@ async function updateOrganizationDefaults(req: HttpRequest, context: InvocationC
 // Register routes
 // ============================================================================
 
-app.http('getOrganizationDefaults', { methods: ['GET'], authLevel: 'anonymous', route: 'organization-defaults', handler: getOrganizationDefaults });
-app.http('updateOrganizationDefaults', { methods: ['PUT'], authLevel: 'anonymous', route: 'organization-defaults', handler: updateOrganizationDefaults });
+app.http('getOrganizationDefaults', { methods: ['GET'], authLevel: 'anonymous', route: 'organization-defaults', handler: withSuperAdmin(getOrganizationDefaults) });
+app.http('updateOrganizationDefaults', { methods: ['PUT'], authLevel: 'anonymous', route: 'organization-defaults', handler: withSuperAdmin(updateOrganizationDefaults, { rateLimitFirst: true }) });

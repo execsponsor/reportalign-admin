@@ -4,14 +4,11 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
+import { withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 
 
-async function platformStats(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function platformStats(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
 
@@ -68,4 +65,4 @@ async function platformStats(req: HttpRequest, context: InvocationContext): Prom
   }
 }
 
-app.http('platformStats', { methods: ['GET'], authLevel: 'anonymous', route: 'platform-stats', handler: platformStats });
+app.http('platformStats', { methods: ['GET'], authLevel: 'anonymous', route: 'platform-stats', handler: withSuperAdmin(platformStats) });

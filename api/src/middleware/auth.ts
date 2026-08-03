@@ -5,10 +5,13 @@
  * Uses the jose library for JWT verification (handles HS256/RS256 correctly).
  */
 
-import { HttpRequest, InvocationContext } from '@azure/functions';
+import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 import { getPool } from '../utils/database';
+import { checkRateLimit } from './rateLimit';
+import { extractOriginIp } from '../utils/clientIp';
 
 interface AuthResult {
   authenticated: boolean;
@@ -16,6 +19,12 @@ interface AuthResult {
   userId?: string;
   email?: string;
   error?: string;
+  /** A6 — Entra session id for correlating one administrator's actions. Null when unavailable. */
+  sessionId?: string | null;
+  /** A5 — origin address, platform-set headers only. Null when none was trustworthy. */
+  ipAddress?: string | null;
+  /** Which header the address came from; surfaced so the header assumption can be confirmed. */
+  ipSource?: string;
 }
 
 let _jwksClient: jwksClient.JwksClient | undefined;
@@ -108,11 +117,25 @@ export async function authenticateSuperAdmin(
       [sa.super_admin_id]
     );
 
+    const { ip, source } = extractOriginIp(req);
+    if (!ip) {
+      // Records which headers were present so the unverified assumption above can be settled
+      // from a real request rather than from documentation.
+      context.warn(
+        `[audit] no trustworthy origin header; saw: ${[...req.headers.keys()]
+          .filter((h) => /ip|forwarded|azure/i.test(h))
+          .join(', ') || '(none)'}`
+      );
+    }
+
     return {
       authenticated: true,
       superAdminId: sa.super_admin_id,
       userId: sa.user_id,
       email,
+      sessionId: deriveSessionId(payload),
+      ipAddress: ip,
+      ipSource: source,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -122,10 +145,103 @@ export async function authenticateSuperAdmin(
 }
 
 /**
+ * An authenticated caller. Same shape as AuthResult, but with the identity fields no longer
+ * optional — inside a wrapped handler they are always present, so handlers stop writing `auth.superAdminId!`.
+ */
+export interface AuthenticatedSuperAdmin {
+  authenticated: true;
+  superAdminId: string;
+  userId: string;
+  email: string;
+  /** Entra session identifier, for correlating one administrator's actions. Null if unavailable. */
+  sessionId: string | null;
+  /** Origin address, from a platform-set header only. Null if none was trustworthy. */
+  ipAddress: string | null;
+}
+
+/**
+ * A6 — a session identifier that can actually correlate a session.
+ *
+ * Entra ID issues `sid` when a session is available; it is stable for the life of that sign-in
+ * and survives token refresh, which is precisely the grouping the column promises. `auth_time`
+ * (when the user actually authenticated, as opposed to `iat`, when this token was minted) is the
+ * fallback: hashing it with the subject gives a value stable across refreshes within one sign-in.
+ *
+ * Returns null when neither claim is present. The previous code generated a fresh random UUID per
+ * record, which made the column look populated while being incapable of grouping anything — worse
+ * than empty, because it invites trust.
+ */
+function deriveSessionId(payload: jwt.JwtPayload): string | null {
+  const sid = payload.sid as string | undefined;
+  if (sid) { return sid; }
+
+  const authTime = (payload.auth_time as number | undefined) ?? undefined;
+  const subject = (payload.sub as string | undefined) ?? undefined;
+  if (authTime && subject) {
+    return crypto.createHash('sha256').update(`${subject}:${authTime}`).digest('hex').slice(0, 32);
+  }
+  return null;
+}
+
+
+export type SuperAdminHandler = (
+  req: HttpRequest,
+  context: InvocationContext,
+  auth: AuthenticatedSuperAdmin
+) => Promise<HttpResponseInit>;
+
+/**
+ * B1 — apply authentication at REGISTRATION rather than inside each handler.
+ *
+ * Every route in this app registers with `authLevel: 'anonymous'` and there is no
+ * platform-level route gating, so the only thing standing between the internet and a database
+ * connection that bypasses row-level security is each handler remembering to call
+ * authenticateSuperAdmin() on its first line. That was correct for 38 of 40 handlers — but the
+ * failure mode is silent and severe: one new handler that forgets is immediately reachable,
+ * unauthenticated, holding owner-level credentials. Nothing in the build or the platform
+ * would catch it.
+ *
+ * Wrapping at registration makes the secure path the default. Authentication can then only be
+ * removed deliberately (by not wrapping and adding the route to the allowlist in
+ * functions/registrations.test.ts), not forgotten.
+ *
+ * `rateLimitFirst` preserves each handler's EXISTING order. Some handlers call checkRateLimit()
+ * before authenticating and some after; flipping that silently would change which status code an
+ * anonymous, over-limit caller receives. Callers keep the order they had.
+ */
+/** Marker the registration guard looks for. Set by withSuperAdmin, never by hand. */
+export const SUPER_ADMIN_WRAPPED = Symbol.for('execsponsor.superAdminWrapped');
+
+export function withSuperAdmin(
+  handler: SuperAdminHandler,
+  opts: { rateLimitFirst?: boolean } = {}
+) {
+  const wrapped = async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    if (opts.rateLimitFirst) {
+      const limited = checkRateLimit(req);
+      if (limited) { return limited; }
+    }
+
+    const auth = await authenticateSuperAdmin(req, context);
+    if (!auth.authenticated) {
+      // Byte-for-byte the response the handlers returned themselves.
+      return { status: 401, jsonBody: { error: auth.error } };
+    }
+
+    return handler(req, context, auth as AuthenticatedSuperAdmin);
+  };
+
+  // A tag rather than a name/source check: the guard must not be fooled by a handler that merely
+  // looks wrapped, and must not break when the bundler renames functions.
+  Object.defineProperty(wrapped, SUPER_ADMIN_WRAPPED, { value: true, enumerable: false });
+  return wrapped;
+}
+
+/**
  * Log an audit action
  */
 export async function logAuditAction(
-  superAdminId: string,
+  auth: AuthenticatedSuperAdmin,
   actionType: string,
   targetType: string,
   targetId: string | null,
@@ -136,17 +252,24 @@ export async function logAuditAction(
   const pool = getPool();
   await pool.query(
     `INSERT INTO super_admin_audit_log
-     (super_admin_id, action_type, target_type, target_id, before_value, after_value, reason, session_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+     (super_admin_id, action_type, target_type, target_id, before_value, after_value, reason, session_id, ip_address)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [
-      superAdminId,
+      auth.superAdminId,
       actionType,
       targetType,
       targetId,
       beforeValue ? JSON.stringify(beforeValue) : null,
       afterValue ? JSON.stringify(afterValue) : null,
       reason || null,
-      crypto.randomUUID(),
+      // A6: previously crypto.randomUUID() per record, so every action looked like a different
+      // session and the column could not group anything — which is exactly what it appears to
+      // promise. Now the Entra session identifier. NULL when the token carries neither `sid` nor
+      // `auth_time`: a null that admits ignorance is worth more than a random value that lies.
+      auth.sessionId ?? null,
+      // A5: the column existed and was never written. Attribution to an account but not an
+      // origin is the first thing missing in an incident.
+      auth.ipAddress ?? null,
     ]
   );
 }

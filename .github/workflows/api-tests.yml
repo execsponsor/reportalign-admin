@@ -1,0 +1,46 @@
+name: API Tests
+
+# B1.5 — blocking check. The registration guard is the control that stops a new handler being
+# reachable without authentication; it is only a control if it runs before merge.
+on:
+  pull_request:
+  push:
+    branches: [deploy-test, main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build, lint and test the admin API
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # NOTE: no lint step. `npm run lint` in api/package.json invokes eslint, but eslint is not a
+      # dependency of this package, so the script fails with "'eslint' is not recognized" on any
+      # clean checkout. Adding it here would make every PR red for a reason unrelated to the change.
+      # Installing and configuring eslint for this API is worth doing separately.
+
+      - name: Build (typecheck)
+        run: npm run build
+
+      # Includes tests/registrationGuard.test.ts, which enumerates the routes actually registered
+      # at runtime and fails if any is reachable without withSuperAdmin. Routes are discovered
+      # dynamically, so an endpoint added tomorrow is covered the day it is written.
+      - name: Test
+        run: npm test

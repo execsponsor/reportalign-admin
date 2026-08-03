@@ -6,6 +6,10 @@
 import assert from 'node:assert/strict';
 import { snakeToCamel } from '../src/utils/caseTransform.js';
 
+// The assertions below were written to run standalone under tsx. Wrapped in a jest test so the
+// suite is actually discovered and executed — before this, `npm test` never ran it at all.
+it('snakeToCamel converts keys correctly across all shapes', () => {
+
 // --- Null / undefined / primitives pass through ---
 assert.strictEqual(snakeToCamel(null), null, 'null passthrough');
 assert.strictEqual(snakeToCamel(undefined), undefined, 'undefined passthrough');
@@ -69,4 +73,4 @@ assert.deepStrictEqual(
   'array with null/undefined entries'
 );
 
-console.log('All caseTransform tests passed.');
+});
