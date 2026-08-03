@@ -4,14 +4,11 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
+import { withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 
 
-async function getReportCompliance(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function getReportCompliance(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
 
@@ -75,4 +72,4 @@ async function getReportCompliance(req: HttpRequest, context: InvocationContext)
   }
 }
 
-app.http('getReportCompliance', { methods: ['GET'], authLevel: 'anonymous', route: 'report-compliance', handler: getReportCompliance });
+app.http('getReportCompliance', { methods: ['GET'], authLevel: 'anonymous', route: 'report-compliance', handler: withSuperAdmin(getReportCompliance) });

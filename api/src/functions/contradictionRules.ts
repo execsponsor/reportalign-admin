@@ -7,7 +7,7 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
+import { logAuditAction, withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { checkRateLimit } from '../middleware/rateLimit';
 import { getPool } from '../utils/database';
 
@@ -15,10 +15,7 @@ import { getPool } from '../utils/database';
 const MASTER_ORG_ID = '00000000-0000-0000-0000-000000000001';
 
 // --- List master rules ---
-async function listMasterRules(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) { return { status: 401, jsonBody: { error: auth.error } }; }
-
+async function listMasterRules(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   const rateLimitResult = checkRateLimit(req);
   if (rateLimitResult) { return rateLimitResult; }
 
@@ -64,10 +61,7 @@ async function listMasterRules(req: HttpRequest, context: InvocationContext): Pr
 }
 
 // --- Create a new master rule ---
-async function createMasterRule(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) { return { status: 401, jsonBody: { error: auth.error } }; }
-
+async function createMasterRule(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
     const body = await req.json() as Record<string, unknown>;
@@ -107,10 +101,7 @@ async function createMasterRule(req: HttpRequest, context: InvocationContext): P
 }
 
 // --- Update a master rule ---
-async function updateMasterRule(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) { return { status: 401, jsonBody: { error: auth.error } }; }
-
+async function updateMasterRule(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
     const ruleId = req.params.ruleId;
@@ -150,10 +141,7 @@ async function updateMasterRule(req: HttpRequest, context: InvocationContext): P
 }
 
 // --- Delete a master rule ---
-async function deleteMasterRule(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) { return { status: 401, jsonBody: { error: auth.error } }; }
-
+async function deleteMasterRule(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
     const ruleId = req.params.ruleId;
@@ -177,10 +165,7 @@ async function deleteMasterRule(req: HttpRequest, context: InvocationContext): P
 }
 
 // --- Push a master rule update to all orgs ---
-async function pushRuleToOrgs(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) { return { status: 401, jsonBody: { error: auth.error } }; }
-
+async function pushRuleToOrgs(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
     const ruleId = req.params.ruleId;
@@ -227,10 +212,7 @@ async function pushRuleToOrgs(req: HttpRequest, context: InvocationContext): Pro
 }
 
 // --- Stats ---
-async function getRuleStats(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) { return { status: 401, jsonBody: { error: auth.error } }; }
-
+async function getRuleStats(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
     const stats = await pool.query(
@@ -259,9 +241,9 @@ async function getRuleStats(req: HttpRequest, context: InvocationContext): Promi
 
 // --- Register Azure Functions ---
 
-app.http('listMasterRules', { methods: ['GET'], authLevel: 'anonymous', route: 'signal-detection-rules', handler: listMasterRules });
-app.http('createMasterRule', { methods: ['POST'], authLevel: 'anonymous', route: 'signal-detection-rules', handler: createMasterRule });
-app.http('updateMasterRule', { methods: ['PATCH'], authLevel: 'anonymous', route: 'signal-detection-rules/{ruleId}', handler: updateMasterRule });
-app.http('deleteMasterRule', { methods: ['DELETE'], authLevel: 'anonymous', route: 'signal-detection-rules/{ruleId}', handler: deleteMasterRule });
-app.http('pushRuleToOrgs', { methods: ['POST'], authLevel: 'anonymous', route: 'signal-detection-rules/{ruleId}/push', handler: pushRuleToOrgs });
-app.http('getRuleStats', { methods: ['GET'], authLevel: 'anonymous', route: 'signal-detection-rules/stats', handler: getRuleStats });
+app.http('listMasterRules', { methods: ['GET'], authLevel: 'anonymous', route: 'signal-detection-rules', handler: withSuperAdmin(listMasterRules) });
+app.http('createMasterRule', { methods: ['POST'], authLevel: 'anonymous', route: 'signal-detection-rules', handler: withSuperAdmin(createMasterRule) });
+app.http('updateMasterRule', { methods: ['PATCH'], authLevel: 'anonymous', route: 'signal-detection-rules/{ruleId}', handler: withSuperAdmin(updateMasterRule) });
+app.http('deleteMasterRule', { methods: ['DELETE'], authLevel: 'anonymous', route: 'signal-detection-rules/{ruleId}', handler: withSuperAdmin(deleteMasterRule) });
+app.http('pushRuleToOrgs', { methods: ['POST'], authLevel: 'anonymous', route: 'signal-detection-rules/{ruleId}/push', handler: withSuperAdmin(pushRuleToOrgs) });
+app.http('getRuleStats', { methods: ['GET'], authLevel: 'anonymous', route: 'signal-detection-rules/stats', handler: withSuperAdmin(getRuleStats) });

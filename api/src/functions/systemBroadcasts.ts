@@ -3,15 +3,12 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
-import { checkRateLimit } from '../middleware/rateLimit';
+import { logAuditAction, withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 
 import { v4 as uuidv4 } from 'uuid';
 
-async function listBroadcasts(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
+async function listBroadcasts(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
     const status = req.query.get('status');
@@ -31,12 +28,7 @@ async function listBroadcasts(req: HttpRequest, context: InvocationContext): Pro
   }
 }
 
-async function createBroadcast(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
+async function createBroadcast(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const body = (await req.json()) as Record<string, unknown>;
     const pool = getPool();
@@ -57,12 +49,7 @@ async function createBroadcast(req: HttpRequest, context: InvocationContext): Pr
   }
 }
 
-async function updateBroadcast(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
+async function updateBroadcast(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const broadcastId = req.params.id;
     const body = (await req.json()) as Record<string, unknown>;
@@ -83,9 +70,7 @@ async function updateBroadcast(req: HttpRequest, context: InvocationContext): Pr
   }
 }
 
-async function listMaintenanceWindows(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
+async function listMaintenanceWindows(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
     const result = await pool.query(
@@ -99,12 +84,7 @@ async function listMaintenanceWindows(req: HttpRequest, context: InvocationConte
   }
 }
 
-async function createMaintenanceWindow(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
+async function createMaintenanceWindow(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const body = (await req.json()) as Record<string, unknown>;
     const pool = getPool();
@@ -125,12 +105,7 @@ async function createMaintenanceWindow(req: HttpRequest, context: InvocationCont
   }
 }
 
-async function updateMaintenanceWindow(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
+async function updateMaintenanceWindow(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const windowId = req.params.id;
     const body = (await req.json()) as Record<string, unknown>;
@@ -151,9 +126,9 @@ async function updateMaintenanceWindow(req: HttpRequest, context: InvocationCont
   }
 }
 
-app.http('listBroadcasts', { methods: ['GET'], authLevel: 'anonymous', route: 'broadcasts', handler: listBroadcasts });
-app.http('createBroadcast', { methods: ['POST'], authLevel: 'anonymous', route: 'broadcasts', handler: createBroadcast });
-app.http('updateBroadcast', { methods: ['PATCH'], authLevel: 'anonymous', route: 'broadcasts/{id}', handler: updateBroadcast });
-app.http('listMaintenanceWindows', { methods: ['GET'], authLevel: 'anonymous', route: 'maintenance-windows', handler: listMaintenanceWindows });
-app.http('createMaintenanceWindow', { methods: ['POST'], authLevel: 'anonymous', route: 'maintenance-windows', handler: createMaintenanceWindow });
-app.http('updateMaintenanceWindow', { methods: ['PATCH'], authLevel: 'anonymous', route: 'maintenance-windows/{id}', handler: updateMaintenanceWindow });
+app.http('listBroadcasts', { methods: ['GET'], authLevel: 'anonymous', route: 'broadcasts', handler: withSuperAdmin(listBroadcasts) });
+app.http('createBroadcast', { methods: ['POST'], authLevel: 'anonymous', route: 'broadcasts', handler: withSuperAdmin(createBroadcast, { rateLimitFirst: true }) });
+app.http('updateBroadcast', { methods: ['PATCH'], authLevel: 'anonymous', route: 'broadcasts/{id}', handler: withSuperAdmin(updateBroadcast, { rateLimitFirst: true }) });
+app.http('listMaintenanceWindows', { methods: ['GET'], authLevel: 'anonymous', route: 'maintenance-windows', handler: withSuperAdmin(listMaintenanceWindows) });
+app.http('createMaintenanceWindow', { methods: ['POST'], authLevel: 'anonymous', route: 'maintenance-windows', handler: withSuperAdmin(createMaintenanceWindow, { rateLimitFirst: true }) });
+app.http('updateMaintenanceWindow', { methods: ['PATCH'], authLevel: 'anonymous', route: 'maintenance-windows/{id}', handler: withSuperAdmin(updateMaintenanceWindow, { rateLimitFirst: true }) });

@@ -4,15 +4,12 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
+import { withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 import { auditLogFilterSchema } from '../utils/validation';
 
 
-async function getAuditLog(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function getAuditLog(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const filters = auditLogFilterSchema.parse(Object.fromEntries(req.query));
     const pool = getPool();
@@ -92,5 +89,5 @@ app.http('getAuditLog', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'audit-log',
-  handler: getAuditLog,
+  handler: withSuperAdmin(getAuditLog),
 });

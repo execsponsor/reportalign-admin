@@ -5,10 +5,11 @@
  * Uses the jose library for JWT verification (handles HS256/RS256 correctly).
  */
 
-import { HttpRequest, InvocationContext } from '@azure/functions';
+import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 import { getPool } from '../utils/database';
+import { checkRateLimit } from './rateLimit';
 
 interface AuthResult {
   authenticated: boolean;
@@ -119,6 +120,70 @@ export async function authenticateSuperAdmin(
     context.error('Auth error:', message);
     return { authenticated: false, error: `Auth failed: ${message}` };
   }
+}
+
+/**
+ * An authenticated caller. Same shape as AuthResult, but with the identity fields no longer
+ * optional — inside a wrapped handler they are always present, so handlers stop writing `auth.superAdminId!`.
+ */
+export interface AuthenticatedSuperAdmin {
+  authenticated: true;
+  superAdminId: string;
+  userId: string;
+  email: string;
+}
+
+export type SuperAdminHandler = (
+  req: HttpRequest,
+  context: InvocationContext,
+  auth: AuthenticatedSuperAdmin
+) => Promise<HttpResponseInit>;
+
+/**
+ * B1 — apply authentication at REGISTRATION rather than inside each handler.
+ *
+ * Every route in this app registers with `authLevel: 'anonymous'` and there is no
+ * platform-level route gating, so the only thing standing between the internet and a database
+ * connection that bypasses row-level security is each handler remembering to call
+ * authenticateSuperAdmin() on its first line. That was correct for 38 of 40 handlers — but the
+ * failure mode is silent and severe: one new handler that forgets is immediately reachable,
+ * unauthenticated, holding owner-level credentials. Nothing in the build or the platform
+ * would catch it.
+ *
+ * Wrapping at registration makes the secure path the default. Authentication can then only be
+ * removed deliberately (by not wrapping and adding the route to the allowlist in
+ * functions/registrations.test.ts), not forgotten.
+ *
+ * `rateLimitFirst` preserves each handler's EXISTING order. Some handlers call checkRateLimit()
+ * before authenticating and some after; flipping that silently would change which status code an
+ * anonymous, over-limit caller receives. Callers keep the order they had.
+ */
+/** Marker the registration guard looks for. Set by withSuperAdmin, never by hand. */
+export const SUPER_ADMIN_WRAPPED = Symbol.for('execsponsor.superAdminWrapped');
+
+export function withSuperAdmin(
+  handler: SuperAdminHandler,
+  opts: { rateLimitFirst?: boolean } = {}
+) {
+  const wrapped = async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+    if (opts.rateLimitFirst) {
+      const limited = checkRateLimit(req);
+      if (limited) { return limited; }
+    }
+
+    const auth = await authenticateSuperAdmin(req, context);
+    if (!auth.authenticated) {
+      // Byte-for-byte the response the handlers returned themselves.
+      return { status: 401, jsonBody: { error: auth.error } };
+    }
+
+    return handler(req, context, auth as AuthenticatedSuperAdmin);
+  };
+
+  // A tag rather than a name/source check: the guard must not be fooled by a handler that merely
+  // looks wrapped, and must not break when the bundler renames functions.
+  Object.defineProperty(wrapped, SUPER_ADMIN_WRAPPED, { value: true, enumerable: false });
+  return wrapped;
 }
 
 /**

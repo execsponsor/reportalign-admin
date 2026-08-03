@@ -4,8 +4,7 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
-import { checkRateLimit } from '../middleware/rateLimit';
+import { logAuditAction, withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 import { generatePassword, hashPassword, hashEmail } from '../utils/crypto';
 import {
@@ -20,10 +19,7 @@ import { v4 as uuidv4 } from 'uuid';
 // GET /api/organizations — List organizations
 // ============================================================================
 
-async function listOrganizations(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function listOrganizations(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const params = paginationSchema.parse(Object.fromEntries(req.query));
     const pool = getPool();
@@ -90,10 +86,7 @@ async function listOrganizations(req: HttpRequest, context: InvocationContext): 
 // GET /api/organizations/:id — View organization details
 // ============================================================================
 
-async function getOrganization(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function getOrganization(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const id = req.params.id;
     const pool = getPool();
@@ -129,13 +122,7 @@ async function getOrganization(req: HttpRequest, context: InvocationContext): Pr
 // POST /api/organizations — Create organization with full provisioning
 // ============================================================================
 
-async function createOrganization(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function createOrganization(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   const body = await req.json() as Record<string, unknown>;
   const data = createOrganizationSchema.parse(body);
   const pool = getPool();
@@ -368,13 +355,7 @@ async function createOrganization(req: HttpRequest, context: InvocationContext):
 // PATCH /api/organizations/:id — Update organization
 // ============================================================================
 
-async function updateOrganization(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function updateOrganization(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const id = req.params.id;
     const body = await req.json() as Record<string, unknown>;
@@ -431,7 +412,7 @@ async function updateOrganization(req: HttpRequest, context: InvocationContext):
 // Register routes
 // ============================================================================
 
-app.http('listOrganizations', { methods: ['GET'], authLevel: 'anonymous', route: 'organizations', handler: listOrganizations });
-app.http('getOrganization', { methods: ['GET'], authLevel: 'anonymous', route: 'organizations/{id}', handler: getOrganization });
-app.http('createOrganization', { methods: ['POST'], authLevel: 'anonymous', route: 'organizations', handler: createOrganization });
-app.http('updateOrganization', { methods: ['PATCH'], authLevel: 'anonymous', route: 'organizations/{id}', handler: updateOrganization });
+app.http('listOrganizations', { methods: ['GET'], authLevel: 'anonymous', route: 'organizations', handler: withSuperAdmin(listOrganizations) });
+app.http('getOrganization', { methods: ['GET'], authLevel: 'anonymous', route: 'organizations/{id}', handler: withSuperAdmin(getOrganization) });
+app.http('createOrganization', { methods: ['POST'], authLevel: 'anonymous', route: 'organizations', handler: withSuperAdmin(createOrganization, { rateLimitFirst: true }) });
+app.http('updateOrganization', { methods: ['PATCH'], authLevel: 'anonymous', route: 'organizations/{id}', handler: withSuperAdmin(updateOrganization, { rateLimitFirst: true }) });

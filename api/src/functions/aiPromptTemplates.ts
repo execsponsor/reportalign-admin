@@ -4,8 +4,7 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin, logAuditAction } from '../middleware/auth';
-import { checkRateLimit } from '../middleware/rateLimit';
+import { logAuditAction, withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 
 
@@ -13,10 +12,7 @@ const VALID_TEMPLATE_KEYS = ['improve', 'expand', 'summarize', 'formalize', 'exe
 const VALID_TONES = ['formal', 'conversational', 'technical', 'executive'];
 const VALID_AUDIENCES = ['board', 'executives', 'stakeholders', 'team'];
 
-async function listAIPromptTemplates(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function listAIPromptTemplates(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
 
@@ -41,10 +37,7 @@ async function listAIPromptTemplates(req: HttpRequest, context: InvocationContex
   }
 }
 
-async function getAIPromptTemplate(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function getAIPromptTemplate(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const templateKey = req.params.templateKey;
     const pool = getPool();
@@ -69,13 +62,7 @@ async function getAIPromptTemplate(req: HttpRequest, context: InvocationContext)
   }
 }
 
-async function updateAIPromptTemplate(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const rateLimited = checkRateLimit(req);
-  if (rateLimited) return rateLimited;
-
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function updateAIPromptTemplate(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const templateKey = req.params.templateKey;
     if (!VALID_TEMPLATE_KEYS.includes(templateKey)) return { status: 400, jsonBody: { success: false, error: 'Invalid template key' } };
@@ -122,6 +109,6 @@ async function updateAIPromptTemplate(req: HttpRequest, context: InvocationConte
   }
 }
 
-app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates', handler: listAIPromptTemplates });
-app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: getAIPromptTemplate });
-app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: updateAIPromptTemplate });
+app.http('listAIPromptTemplates', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates', handler: withSuperAdmin(listAIPromptTemplates) });
+app.http('getAIPromptTemplate', { methods: ['GET'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: withSuperAdmin(getAIPromptTemplate) });
+app.http('updateAIPromptTemplate', { methods: ['PUT'], authLevel: 'anonymous', route: 'ai-prompt-templates/{templateKey}', handler: withSuperAdmin(updateAIPromptTemplate, { rateLimitFirst: true }) });

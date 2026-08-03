@@ -4,14 +4,11 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
+import { withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 
 
-async function listSecurityEvents(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function listSecurityEvents(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
     const page = parseInt(req.query.get('page') || '1');
@@ -62,10 +59,7 @@ async function listSecurityEvents(req: HttpRequest, context: InvocationContext):
   }
 }
 
-async function getSecuritySummary(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function getSecuritySummary(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
 
@@ -100,5 +94,5 @@ async function getSecuritySummary(req: HttpRequest, context: InvocationContext):
   }
 }
 
-app.http('listSecurityEvents', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events', handler: listSecurityEvents });
-app.http('getSecuritySummary', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events/summary', handler: getSecuritySummary });
+app.http('listSecurityEvents', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events', handler: withSuperAdmin(listSecurityEvents) });
+app.http('getSecuritySummary', { methods: ['GET'], authLevel: 'anonymous', route: 'security-events/summary', handler: withSuperAdmin(getSecuritySummary) });

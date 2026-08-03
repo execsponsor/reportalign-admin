@@ -4,7 +4,7 @@
  */
 
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { authenticateSuperAdmin } from '../middleware/auth';
+import { withSuperAdmin, AuthenticatedSuperAdmin } from '../middleware/auth';
 import { getPool } from '../utils/database';
 
 
@@ -12,10 +12,7 @@ import { getPool } from '../utils/database';
 // GET /api/nps-surveys — Platform-wide NPS summary by org
 // ============================================================================
 
-async function listNpsSurveys(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function listNpsSurveys(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const pool = getPool();
 
@@ -151,10 +148,7 @@ async function listNpsSurveys(req: HttpRequest, context: InvocationContext): Pro
 // GET /api/nps-surveys/:orgId — Detailed NPS for one org
 // ============================================================================
 
-async function getOrgNpsSurveys(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const auth = await authenticateSuperAdmin(req, context);
-  if (!auth.authenticated) return { status: 401, jsonBody: { error: auth.error } };
-
+async function getOrgNpsSurveys(req: HttpRequest, context: InvocationContext, auth: AuthenticatedSuperAdmin): Promise<HttpResponseInit> {
   try {
     const orgId = req.params.orgId;
     if (!orgId) return { status: 400, jsonBody: { error: 'orgId required' } };
@@ -262,12 +256,12 @@ app.http('listNpsSurveys', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'nps-surveys',
-  handler: listNpsSurveys,
+  handler: withSuperAdmin(listNpsSurveys),
 });
 
 app.http('getOrgNpsSurveys', {
   methods: ['GET'],
   authLevel: 'anonymous',
   route: 'nps-surveys/{orgId}',
-  handler: getOrgNpsSurveys,
+  handler: withSuperAdmin(getOrgNpsSurveys),
 });
