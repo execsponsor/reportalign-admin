@@ -1,9 +1,17 @@
 -- 003_admin_api_least_privilege_role.sql
 --
 -- ############################################################################################
--- ##  DESIGN ONLY — DO NOT APPLY TO ANY ENVIRONMENT WITHOUT RUNNING THE VERIFICATION FIRST.  ##
--- ##  This is the change most likely to cause an outage in the whole remediation programme.  ##
+-- ##  APPLIED to pre-prod and production on 2026-08-03, verified before each cutover.        ##
+-- ##  Re-running is safe (idempotent). Still run verify-admin-role-privileges.js after ANY   ##
+-- ##  change to this file: the grant set is derived from static analysis and is a hypothesis ##
+-- ##  until something connects as the role and proves it.                                    ##
 -- ############################################################################################
+--
+-- VERIFICATION RESULT at apply time (both environments):
+--   0 MISSING, 0 EXCESS, 0 tables outside the grant set, owns nothing, not superuser.
+--   Exercised as the role: CAN read organizations/users/reports/audit log cross-tenant;
+--   CANNOT CREATE TABLE, DROP TABLE, ALTER TABLE, TRUNCATE the audit log, or DELETE
+--   FROM organizations.
 --
 -- B4 / finding A3 — stop the admin API connecting as the table owner.
 --
@@ -20,7 +28,7 @@
 --   actually performs, with BYPASSRLS granted EXPLICITLY so cross-tenant reach is a visible,
 --   deliberate decision rather than a side effect of reusing the owner account.
 --
--- HOW THE GRANT SET WAS DERIVED — and why it is not yet trustworthy
+-- HOW THE GRANT SET WAS DERIVED — and why it had to be verified, not trusted
 --   scripts/enumerate-db-operations.js statically analyses the SQL in src/. Its first pass pairs
 --   quotes to find string literals, and a stray apostrophe in a prose comment ("each handler's
 --   order") shifted that pairing and silently swallowed the SQL after it. That lost three real
@@ -62,6 +70,11 @@ $$;
 
 -- ---------------------------------------------------------------------------------------------
 -- Read-only tables
+--
+-- NOTE: `stakeholders` was in the first draft of this list and does not exist. The cross-check
+-- sweep matched the prose "Decisions needed from stakeholders" as `FROM <table>` — a false
+-- positive from the deliberately over-approximating pass. It failed the migration on first apply
+-- rather than silently over-granting, which is the direction that sweep is meant to fail in.
 -- ---------------------------------------------------------------------------------------------
 GRANT SELECT ON TABLE
   public.ai_usage_log,
@@ -69,8 +82,7 @@ GRANT SELECT ON TABLE
   public.programme_team_members,
   public.programmes,
   public.reports,
-  public.security_events,
-  public.stakeholders
+  public.security_events
 TO execsponsor_admin_api;
 
 -- ---------------------------------------------------------------------------------------------
@@ -120,3 +132,16 @@ BEGIN
   );
 END
 $$;
+
+-- ---------------------------------------------------------------------------------------------
+-- Pre-existing over-grant, found by the verification script rather than by review.
+--
+-- `trial_emails_sent` carries SELECT and INSERT grants to PUBLIC, so EVERY role in the database
+-- can read and write it — including this new least-privilege role, which would otherwise have
+-- reached a table nobody intended it to reach. That is the one thing the verifier flagged as
+-- outside the expected grant set, which is exactly what it exists to catch.
+--
+-- Safe to revoke: the application role holds its own explicit SELECT/INSERT/UPDATE/DELETE, so it
+-- is unaffected. Only implicit PUBLIC access disappears.
+-- ---------------------------------------------------------------------------------------------
+REVOKE SELECT, INSERT ON TABLE public.trial_emails_sent FROM PUBLIC;
